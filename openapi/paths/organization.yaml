@@ -1,0 +1,893 @@
+paths:
+  /api/v1/platform/tenants:
+    get:
+      tags: [Platform Tenants]
+      operationId: listPlatformTenants
+      security:
+        - OAuth2: [platform:tenant:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.tenant.read]
+      summary: List tenants
+      description: Platform administration endpoint. It is not available to tenant-scoped administrators.
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Tenant page.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantListResponse'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+    post:
+      tags: [Platform Tenants]
+      operationId: createPlatformTenant
+      security:
+        - OAuth2: [platform:tenant:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.tenant.create]
+      summary: Provision a tenant
+      description: Creates a provisioned tenant. Initial membership provisioning is a separate IAM workflow.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/CreateTenantRequest'
+      responses:
+        '201':
+          description: Tenant provisioned.
+          headers:
+            Location: { $ref: '../openapi.yaml#/components/headers/Location' }
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantDetail'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/platform/tenants/{tenantId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantId'
+    get:
+      tags: [Platform Tenants]
+      operationId: getPlatformTenant
+      security:
+        - OAuth2: [platform:tenant:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.tenant.read]
+      summary: Get a tenant
+      responses:
+        '200':
+          description: Tenant detail.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+    patch:
+      tags: [Platform Tenants]
+      operationId: updatePlatformTenant
+      security:
+        - OAuth2: [platform:tenant:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.tenant.update]
+      summary: Update tenant metadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/UpdateTenantRequest'
+      responses:
+        '200':
+          description: Tenant updated.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantDetail'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/platform/tenants/{tenantId}/activate:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantId'
+    post:
+      tags: [Platform Tenants]
+      operationId: activatePlatformTenant
+      security:
+        - OAuth2: [platform:tenant:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.tenant.activate]
+      summary: Activate a tenant
+      responses:
+        '200':
+          description: Tenant activated.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/platform/tenants/{tenantId}/suspend:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantId'
+    post:
+      tags: [Platform Tenants]
+      operationId: suspendPlatformTenant
+      security:
+        - OAuth2: [platform:tenant:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.tenant.suspend]
+      summary: Suspend a tenant
+      responses:
+        '200':
+          description: Tenant suspended.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/platform/tenants/{tenantId}/archive:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantId'
+    post:
+      tags: [Platform Tenants]
+      operationId: archivePlatformTenant
+      security:
+        - OAuth2: [platform:tenant:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.tenant.archive]
+      summary: Archive a tenant
+      responses:
+        '200':
+          description: Tenant archived.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/tenant:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Tenants]
+      operationId: getCurrentTenant
+      security:
+        - OAuth2: [tenant:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [tenant.read]
+      summary: Get the active tenant
+      description: The active tenant is resolved from trusted token/session context.
+      responses:
+        '200':
+          description: Active tenant detail.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+    patch:
+      tags: [Tenants]
+      operationId: updateCurrentTenant
+      security:
+        - OAuth2: [tenant:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [tenant.update]
+      summary: Update the active tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/UpdateTenantRequest'
+      responses:
+        '200':
+          description: Active tenant updated.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantDetail'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/companies:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Companies]
+      operationId: listCompanies
+      security:
+        - OAuth2: [organization:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [company.read]
+      summary: List companies in the active tenant
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Company page.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/CompanyListResponse'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+    post:
+      tags: [Companies]
+      operationId: createCompany
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [company.create]
+      summary: Create a company in the active tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/CreateCompanyRequest'
+      responses:
+        '201':
+          description: Company created.
+          headers:
+            Location: { $ref: '../openapi.yaml#/components/headers/Location' }
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/CompanyDetail'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/companies/{companyId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/CompanyId'
+    get:
+      tags: [Companies]
+      operationId: getCompany
+      security:
+        - OAuth2: [organization:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [company.read]
+      summary: Get a company
+      responses:
+        '200':
+          description: Company detail.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/CompanyDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+    patch:
+      tags: [Companies]
+      operationId: updateCompany
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [company.update]
+      summary: Update company metadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/UpdateCompanyRequest'
+      responses:
+        '200':
+          description: Company updated.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/CompanyDetail'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/companies/{companyId}/activate:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/CompanyId'
+    post:
+      tags: [Companies]
+      operationId: activateCompany
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [company.activate]
+      summary: Activate a company
+      responses:
+        '200':
+          description: Company activated.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/CompanyDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/companies/{companyId}/suspend:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/CompanyId'
+    post:
+      tags: [Companies]
+      operationId: suspendCompany
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [company.suspend]
+      summary: Suspend a company
+      responses:
+        '200':
+          description: Company suspended.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/CompanyDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/companies/{companyId}/archive:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/CompanyId'
+    post:
+      tags: [Companies]
+      operationId: archiveCompany
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [company.archive]
+      summary: Archive a company
+      responses:
+        '200':
+          description: Company archived.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/CompanyDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/locations:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Organization Units]
+      operationId: listLocations
+      security:
+        - OAuth2: [organization:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.read]
+      summary: List locations
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/CompanyIdQuery'
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Location page.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/LocationListResponse' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+    post:
+      tags: [Organization Units]
+      operationId: createLocation
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.create]
+      summary: Create a location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../openapi.yaml#/components/schemas/CreateLocationRequest' }
+      responses:
+        '201':
+          description: Location created.
+          headers:
+            Location: { $ref: '../openapi.yaml#/components/headers/Location' }
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/LocationDetail' }
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/locations/{locationId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/LocationId'
+    get:
+      tags: [Organization Units]
+      operationId: getLocation
+      security:
+        - OAuth2: [organization:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.read]
+      summary: Get a location
+      responses:
+        '200':
+          description: Location detail.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/LocationDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+    patch:
+      tags: [Organization Units]
+      operationId: updateLocation
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.update]
+      summary: Update a location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../openapi.yaml#/components/schemas/UpdateLocationRequest' }
+      responses:
+        '200':
+          description: Location updated.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/LocationDetail' }
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/locations/{locationId}/archive:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/LocationId'
+    post:
+      tags: [Organization Units]
+      operationId: archiveLocation
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.archive]
+      summary: Archive a location
+      responses:
+        '200':
+          description: Location archived.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/LocationDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/departments:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Organization Units]
+      operationId: listDepartments
+      security:
+        - OAuth2: [organization:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.read]
+      summary: List departments
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/CompanyIdQuery'
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Department page.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/DepartmentListResponse' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+    post:
+      tags: [Organization Units]
+      operationId: createDepartment
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.create]
+      summary: Create a department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../openapi.yaml#/components/schemas/CreateDepartmentRequest' }
+      responses:
+        '201':
+          description: Department created.
+          headers:
+            Location: { $ref: '../openapi.yaml#/components/headers/Location' }
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/DepartmentDetail' }
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/departments/{departmentId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/DepartmentId'
+    get:
+      tags: [Organization Units]
+      operationId: getDepartment
+      security:
+        - OAuth2: [organization:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.read]
+      summary: Get a department
+      responses:
+        '200':
+          description: Department detail.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/DepartmentDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+    patch:
+      tags: [Organization Units]
+      operationId: updateDepartment
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.update]
+      summary: Update a department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../openapi.yaml#/components/schemas/UpdateDepartmentRequest' }
+      responses:
+        '200':
+          description: Department updated.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/DepartmentDetail' }
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/departments/{departmentId}/archive:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/DepartmentId'
+    post:
+      tags: [Organization Units]
+      operationId: archiveDepartment
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.archive]
+      summary: Archive a department
+      responses:
+        '200':
+          description: Department archived.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/DepartmentDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/positions:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Organization Units]
+      operationId: listPositions
+      security:
+        - OAuth2: [organization:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.read]
+      summary: List positions
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/CompanyIdQuery'
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Position page.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/PositionListResponse' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+    post:
+      tags: [Organization Units]
+      operationId: createPosition
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.create]
+      summary: Create a position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../openapi.yaml#/components/schemas/CreatePositionRequest' }
+      responses:
+        '201':
+          description: Position created.
+          headers:
+            Location: { $ref: '../openapi.yaml#/components/headers/Location' }
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/PositionDetail' }
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/positions/{positionId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/PositionId'
+    get:
+      tags: [Organization Units]
+      operationId: getPosition
+      security:
+        - OAuth2: [organization:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.read]
+      summary: Get a position
+      responses:
+        '200':
+          description: Position detail.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/PositionDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+    patch:
+      tags: [Organization Units]
+      operationId: updatePosition
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.update]
+      summary: Update a position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../openapi.yaml#/components/schemas/UpdatePositionRequest' }
+      responses:
+        '200':
+          description: Position updated.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/PositionDetail' }
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/positions/{positionId}/archive:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/PositionId'
+    post:
+      tags: [Organization Units]
+      operationId: archivePosition
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.archive]
+      summary: Archive a position
+      responses:
+        '200':
+          description: Position archived.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/PositionDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/groups:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Organization Units]
+      operationId: listGroups
+      security:
+        - OAuth2: [organization:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.read]
+      summary: List groups
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/CompanyIdQuery'
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Group page.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/GroupListResponse' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+    post:
+      tags: [Organization Units]
+      operationId: createGroup
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.create]
+      summary: Create a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../openapi.yaml#/components/schemas/CreateGroupRequest' }
+      responses:
+        '201':
+          description: Group created.
+          headers:
+            Location: { $ref: '../openapi.yaml#/components/headers/Location' }
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/GroupDetail' }
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/groups/{groupId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/GroupId'
+    get:
+      tags: [Organization Units]
+      operationId: getGroup
+      security:
+        - OAuth2: [organization:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.read]
+      summary: Get a group
+      responses:
+        '200':
+          description: Group detail.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/GroupDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+    patch:
+      tags: [Organization Units]
+      operationId: updateGroup
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.update]
+      summary: Update a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '../openapi.yaml#/components/schemas/UpdateGroupRequest' }
+      responses:
+        '200':
+          description: Group updated.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/GroupDetail' }
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/groups/{groupId}/archive:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/GroupId'
+    post:
+      tags: [Organization Units]
+      operationId: archiveGroup
+      security:
+        - OAuth2: [organization:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [organization.unit.archive]
+      summary: Archive a group
+      responses:
+        '200':
+          description: Group archived.
+          content:
+            application/json:
+              schema: { $ref: '../openapi.yaml#/components/schemas/GroupDetail' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }

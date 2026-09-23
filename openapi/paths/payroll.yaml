@@ -1,0 +1,197 @@
+paths:
+  /api/v1/payroll-periods:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Payroll]
+      operationId: listPayrollPeriods
+      security:
+        - OAuth2: [payroll:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [payroll.period.read]
+      summary: List payroll periods for a company
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/PayrollCompanyIdQuery'
+        - $ref: '../openapi.yaml#/components/parameters/PayrollPeriodStatusQuery'
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Payroll period page.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/PayrollPeriodListResponse'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+    post:
+      tags: [Payroll]
+      operationId: createPayrollPeriod
+      security:
+        - OAuth2: [payroll:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [payroll.period.write]
+      summary: Create an open payroll period
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/CreatePayrollPeriodRequest'
+      responses:
+        '201':
+          description: Payroll period created.
+          headers:
+            Location:
+              $ref: '../openapi.yaml#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/PayrollPeriodDetail'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '409':
+          $ref: '../openapi.yaml#/components/responses/Conflict'
+
+  /api/v1/payroll-periods/{payrollPeriodId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/PayrollPeriodId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Payroll]
+      operationId: getPayrollPeriod
+      security:
+        - OAuth2: [payroll:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [payroll.period.read]
+      summary: Get a payroll period
+      responses:
+        '200':
+          description: Payroll period detail.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/PayrollPeriodDetail'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+
+  /api/v1/payroll-periods/{payrollPeriodId}/results:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/PayrollPeriodId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    post:
+      tags: [Payroll]
+      operationId: recordPayrollResult
+      security:
+        - OAuth2: [payroll:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [payroll.result.write]
+      summary: Record an externally calculated payroll result
+      description: Results are append-only and must contain at least one normalized component item.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/CreatePayrollResultRequest'
+      responses:
+        '201':
+          description: Payroll result recorded.
+          headers:
+            Location:
+              $ref: '../openapi.yaml#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/PayrollResultDetail'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../openapi.yaml#/components/responses/Conflict'
+
+  /api/v1/payroll-periods/{payrollPeriodId}/finalize:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/PayrollPeriodId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    post:
+      tags: [Payroll]
+      operationId: finalizePayrollPeriod
+      security:
+        - OAuth2: [payroll:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [payroll.finalize]
+      summary: Finalize a payroll period
+      description: Finalization locks the period, its results, and all component items against mutation.
+      responses:
+        '200':
+          description: Payroll period finalized.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/PayrollPeriodDetail'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../openapi.yaml#/components/responses/Conflict'
+
+  /api/v1/employees/{employeeId}/payroll-history:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/EmployeeId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Payroll]
+      operationId: listEmployeePayrollHistory
+      security:
+        - OAuth2: [payroll:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [payroll.result.read]
+      summary: List payroll history for an employee
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/PayrollYear'
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Employee payroll history page.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/PayrollHistoryResponse'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'

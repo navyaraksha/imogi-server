@@ -1,0 +1,248 @@
+version: 1
+description: |
+  Internal authorization policy for the Imogi API. This document is not a
+  client-controlled permission list. The application must require both the
+  OAuth scope and the listed capability, then enforce company/data scope.
+
+evaluation:
+  rule: all
+  requirements:
+    - The access token must contain every OAuth scope required by the operation.
+    - The principal must have every capability required by the operation.
+    - The principal must be authorized for the target company and resource.
+  companyScope:
+    required: true
+    source: trusted identity claims and server-side authorization policy
+    clientSuppliedCompanyIdIsAuthoritative: false
+
+capabilities:
+  platform.tenant.read:
+    requiredScopes: ['platform:tenant:read']
+    description: Read tenants in platform administration.
+  platform.tenant.create:
+    requiredScopes: ['platform:tenant:write']
+    description: Provision a tenant.
+  platform.tenant.update:
+    requiredScopes: ['platform:tenant:write']
+    description: Update tenant metadata.
+  platform.tenant.activate:
+    requiredScopes: ['platform:tenant:write']
+    description: Activate a provisioned or suspended tenant.
+  platform.tenant.suspend:
+    requiredScopes: ['platform:tenant:write']
+    description: Suspend a tenant.
+  platform.tenant.archive:
+    requiredScopes: ['platform:tenant:write']
+    description: Archive a tenant without deleting history.
+  platform.user.read:
+    requiredScopes: ['platform:user:read']
+    description: Read platform users without exposing identity-provider secrets.
+  platform.user.create:
+    requiredScopes: ['platform:user:write']
+    description: Pre-register a platform user by verified email.
+  platform.user.block:
+    requiredScopes: ['platform:user:write']
+    description: Block a platform user from authenticating.
+  platform.membership.read:
+    requiredScopes: ['platform:membership:read']
+    description: Read memberships across tenants from the platform boundary.
+  platform.membership.write:
+    requiredScopes: ['platform:membership:write']
+    description: Provision, change, revoke, or reactivate tenant memberships from the platform boundary.
+  tenant.read:
+    requiredScopes: ['tenant:read']
+    description: Read the active tenant metadata.
+  tenant.update:
+    requiredScopes: ['tenant:write']
+    description: Update active tenant metadata.
+  company.read:
+    requiredScopes: ['organization:read']
+    description: Read company metadata in the active tenant.
+  company.create:
+    requiredScopes: ['organization:write']
+    description: Create a company in the active tenant.
+  company.update:
+    requiredScopes: ['organization:write']
+    description: Update company metadata.
+  company.activate:
+    requiredScopes: ['organization:write']
+    description: Activate a company.
+  company.suspend:
+    requiredScopes: ['organization:write']
+    description: Suspend a company.
+  company.archive:
+    requiredScopes: ['organization:write']
+    description: Archive a company without deleting history.
+  organization.unit.read:
+    requiredScopes: ['organization:read']
+    description: Read typed organization units.
+  organization.unit.create:
+    requiredScopes: ['organization:write']
+    description: Create typed organization units.
+  organization.unit.update:
+    requiredScopes: ['organization:write']
+    description: Update typed organization unit metadata.
+  organization.unit.archive:
+    requiredScopes: ['organization:write']
+    description: Archive typed organization units without deleting history.
+  membership.read:
+    requiredScopes: ['membership:read']
+    description: Read tenant memberships and role assignments.
+  membership.write:
+    requiredScopes: ['membership:write']
+    description: Manage tenant memberships and role assignments.
+  audit.read:
+    requiredScopes: ['audit:read']
+    description: Read redacted tenant audit events.
+  employee.read.basic:
+    requiredScopes: ['employee:read-basic']
+    description: Read employee summary and non-restricted personal data.
+  employee.read.identity:
+    requiredScopes: ['employee:read-pii']
+    description: Read restricted identity data such as NIK.
+  employee.create:
+    requiredScopes: ['employee:write-pii']
+    description: Create an employee person identity.
+  employee.write.identity:
+    requiredScopes: ['employee:write-pii']
+    description: Submit or change restricted employee identity data.
+  employee.update.personal:
+    requiredScopes: ['employee:write-basic']
+    description: Update non-restricted employee personal data.
+  employment.read:
+    requiredScopes: ['employment:read']
+    description: Read employment history.
+  employment.start:
+    requiredScopes: ['employment:write']
+    description: Start an employment.
+  employment.rejoin:
+    requiredScopes: ['employment:write']
+    description: Create a new employment for a returning employee.
+  employment.resign:
+    requiredScopes: ['employment:write']
+    description: End an employment.
+  assignment.read:
+    requiredScopes: ['employment:read']
+    description: Read employment assignment history.
+  assignment.write:
+    requiredScopes: ['employment:write']
+    description: Add an employment assignment.
+  tax_profile.read:
+    requiredScopes: ['tax:read']
+    description: Read tax profile history, including restricted tax identifiers.
+  tax_profile.write:
+    requiredScopes: ['tax:write']
+    description: Add a tax profile version.
+  payroll.period.read:
+    requiredScopes: ['payroll:read']
+    description: Read company payroll periods.
+  payroll.period.write:
+    requiredScopes: ['payroll:write']
+    description: Create company payroll periods.
+  payroll.result.read:
+    requiredScopes: ['payroll:read']
+    description: Read historical payroll results and components.
+  payroll.result.write:
+    requiredScopes: ['payroll:write']
+    description: Record externally calculated payroll results.
+  payroll.finalize:
+    requiredScopes: ['payroll:write']
+    description: Finalize a payroll period and lock its results.
+  file_batch.read:
+    requiredScopes: ['file:read']
+    description: Read asynchronous import batch status.
+  file_batch.create:
+    requiredScopes: ['file:write']
+    description: Create uploads and start file validation.
+  file_batch.commit:
+    requiredScopes: ['file:commit']
+    description: Commit a validated import batch.
+  file_batch.cancel:
+    requiredScopes: ['file:write']
+    description: Request cooperative cancellation of an import batch.
+  file_artifact.read:
+    requiredScopes: ['file:read']
+    description: Read and download authorized batch artifacts.
+  file_template.read:
+    requiredScopes: ['file:read']
+    description: Read versioned import templates.
+  background_job.read:
+    requiredScopes: ['file:read']
+    description: Read operational state for background jobs.
+
+roles:
+  platform_admin:
+    description: Provision and operate tenants from the platform administration boundary.
+    capabilities:
+      - platform.tenant.read
+      - platform.tenant.create
+      - platform.tenant.update
+      - platform.tenant.activate
+      - platform.tenant.suspend
+      - platform.tenant.archive
+      - platform.user.read
+      - platform.user.create
+      - platform.user.block
+      - platform.membership.read
+      - platform.membership.write
+  tenant_admin:
+    description: Manage the active tenant organization and membership policy.
+    capabilities:
+      - tenant.read
+      - tenant.update
+      - company.read
+      - company.create
+      - company.update
+      - company.activate
+      - company.suspend
+      - company.archive
+      - organization.unit.read
+      - organization.unit.create
+      - organization.unit.update
+      - organization.unit.archive
+      - membership.read
+      - membership.write
+      - audit.read
+  hr_admin:
+    description: Manage employee and employment administration.
+    capabilities:
+      - employee.read.basic
+      - employee.read.identity
+      - employee.create
+      - employee.write.identity
+      - employee.update.personal
+      - employment.read
+      - employment.start
+      - employment.rejoin
+      - employment.resign
+      - assignment.read
+      - assignment.write
+      - file_batch.read
+      - file_batch.create
+      - file_batch.cancel
+      - file_artifact.read
+      - file_template.read
+  tax_admin:
+    description: Manage employee tax profile data.
+    capabilities:
+      - employee.read.basic
+      - employee.read.identity
+      - employment.read
+      - tax_profile.read
+      - tax_profile.write
+  payroll_admin:
+    description: Manage imported payroll periods and historical payroll results.
+    capabilities:
+      - employee.read.basic
+      - employment.read
+      - payroll.period.read
+      - payroll.period.write
+      - payroll.result.read
+      - payroll.result.write
+      - payroll.finalize
+      - file_batch.read
+      - file_batch.create
+      - file_batch.commit
+      - file_batch.cancel
+      - file_artifact.read
+      - file_template.read

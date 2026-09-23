@@ -1,0 +1,58 @@
+paths:
+  /api/v1/auth/session:
+    post:
+      tags: [Authentication]
+      operationId: createSession
+      security:
+        - OAuth2: []
+      summary: Create an Imogi session
+      description: Validates the Google ID token from the Authorization header and sets an HttpOnly session cookie.
+      responses:
+        '200':
+          description: Session created.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/AuthMeResponse'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+    delete:
+      tags: [Authentication]
+      operationId: deleteSession
+      security:
+        - OAuth2: []
+        - ImogiSession: []
+      summary: Revoke the current Imogi session
+      responses:
+        '204':
+          description: Session revoked.
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+
+  /api/v1/auth/me:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Authentication]
+      operationId: getCurrentUser
+      security:
+        - OAuth2: []
+        - ImogiSession: []
+      summary: Get the authenticated user and accessible tenants
+      description: |
+        Returns the minimum identity and tenant-selection information needed by
+        a client. Tenant access is enforced by server-side membership checks on
+        every request.
+      responses:
+        '200':
+          description: Authenticated user profile and tenant access.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/AuthMeResponse'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'

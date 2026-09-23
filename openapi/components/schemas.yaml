@@ -1,0 +1,1287 @@
+schemas:
+  ImportOperation:
+    type: string
+    enum: [employee_master, employment_history, assignment_history, tax_profile_history, payroll_ledger]
+
+  ImportBatchStatus:
+    type: string
+    enum: [uploading, uploaded, validating, validated, validation_failed, commit_requested, committing, completed, commit_failed, cancel_requested, canceled]
+
+  ImportBatchDetail:
+    type: object
+    additionalProperties: false
+    required: [id, companyId, operation, status, totalRows, validRows, invalidRows, warningRows, committedRows, rejectedRows, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      operation:
+        $ref: '../openapi.yaml#/components/schemas/ImportOperation'
+      status:
+        $ref: '../openapi.yaml#/components/schemas/ImportBatchStatus'
+      totalRows:
+        type: integer
+        format: int32
+        minimum: 0
+      validRows:
+        type: integer
+        format: int32
+        minimum: 0
+      invalidRows:
+        type: integer
+        format: int32
+        minimum: 0
+      warningRows:
+        type: integer
+        format: int32
+        minimum: 0
+      committedRows:
+        type: integer
+        format: int32
+        minimum: 0
+      rejectedRows:
+        type: integer
+        format: int32
+        minimum: 0
+      validationStartedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      validationFinishedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      commitStartedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      commitFinishedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  CreateImportBatchRequest:
+    type: object
+    additionalProperties: false
+    required: [companyId, operation, filename, extension, contentType, expectedSize]
+    properties:
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      operation:
+        $ref: '../openapi.yaml#/components/schemas/ImportOperation'
+      filename:
+        type: string
+        minLength: 1
+        maxLength: 255
+      extension:
+        type: string
+        enum: [xlsx, xls, xlsm, csv, json]
+      contentType:
+        type: string
+        minLength: 1
+        maxLength: 150
+      expectedSize:
+        type: integer
+        format: int64
+        minimum: 0
+      templateId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+
+  UploadSession:
+    type: object
+    additionalProperties: false
+    required: [provider, objectKey, method, url, headers]
+    properties:
+      provider:
+        type: string
+        enum: [s3, filesystem]
+      objectKey:
+        type: string
+        description: Internal object key. Clients must not interpret it as authorization.
+      method:
+        type: string
+        enum: [PUT]
+      url:
+        type: string
+        format: uri-reference
+      headers:
+        type: object
+        additionalProperties:
+          type: string
+
+  ImportBatchUploadResponse:
+    type: object
+    additionalProperties: false
+    required: [batch, upload]
+    properties:
+      batch:
+        $ref: '../openapi.yaml#/components/schemas/ImportBatchDetail'
+      upload:
+        $ref: '../openapi.yaml#/components/schemas/UploadSession'
+
+  ImportBatchJobResponse:
+    type: object
+    additionalProperties: false
+    required: [batch, jobId]
+    properties:
+      batch:
+        $ref: '../openapi.yaml#/components/schemas/ImportBatchDetail'
+      jobId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+
+  ImportBatchArtifact:
+    type: object
+    additionalProperties: false
+    required: [id, role, filename, extension, sizeBytes, createdAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      role:
+        type: string
+        enum: [input, validation_summary, validation_errors, normalized, import_receipt, output_xml, error_report]
+      filename:
+        type: string
+      extension:
+        type: string
+      sizeBytes:
+        type: integer
+        format: int64
+        minimum: 0
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  ImportBatchArtifactListResponse:
+    type: object
+    additionalProperties: false
+    required: [data]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/ImportBatchArtifact'
+
+  ArtifactDownloadURLResponse:
+    type: object
+    additionalProperties: false
+    required: [url, expiresAt]
+    properties:
+      url:
+        type: string
+        format: uri-reference
+      expiresAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  ImportTemplateDetail:
+    type: object
+    additionalProperties: false
+    required: [id, templateType, version, fileFormat, status]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      templateType:
+        type: string
+      version:
+        type: string
+      fileFormat:
+        type: string
+        enum: [xlsx, xls, xlsm, csv, json]
+      status:
+        type: string
+        enum: [active, retired]
+
+  ImportTemplateListResponse:
+    type: object
+    additionalProperties: false
+    required: [data]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/ImportTemplateDetail'
+  PlatformUserStatus:
+    type: string
+    enum: [pending, active, blocked]
+
+  MembershipRole:
+    type: string
+    enum: [tenant_admin, hr_admin, tax_admin, payroll_admin]
+
+  MembershipStatus:
+    type: string
+    enum: [active, suspended, revoked]
+
+  PlatformUserSummary:
+    type: object
+    additionalProperties: false
+    required: [id, email, displayName, status, googleLinked]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      email:
+        type: string
+        format: email
+        maxLength: 320
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 200
+      status:
+        $ref: '../openapi.yaml#/components/schemas/PlatformUserStatus'
+      googleLinked:
+        type: boolean
+
+  PlatformUserDetail:
+    allOf:
+      - $ref: '../openapi.yaml#/components/schemas/PlatformUserSummary'
+      - type: object
+        required: [createdAt, updatedAt]
+        properties:
+          createdAt:
+            $ref: '../openapi.yaml#/components/schemas/Timestamp'
+          updatedAt:
+            $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  CreatePlatformUserRequest:
+    type: object
+    additionalProperties: false
+    required: [email]
+    properties:
+      email:
+        type: string
+        format: email
+        maxLength: 320
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 200
+
+  PlatformUserListResponse:
+    type: object
+    additionalProperties: false
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/PlatformUserSummary'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  CreateTenantMembershipRequest:
+    type: object
+    additionalProperties: false
+    required: [email, role]
+    properties:
+      email:
+        type: string
+        format: email
+        maxLength: 320
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 200
+      role:
+        $ref: '../openapi.yaml#/components/schemas/MembershipRole'
+
+  UpdateTenantMembershipRequest:
+    type: object
+    additionalProperties: false
+    required: [role]
+    properties:
+      role:
+        $ref: '../openapi.yaml#/components/schemas/MembershipRole'
+
+  TenantMembershipDetail:
+    type: object
+    additionalProperties: false
+    required: [id, userId, tenantId, email, displayName, userStatus, googleLinked, role, status, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      userId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      tenantId:
+        $ref: '../openapi.yaml#/components/schemas/TenantId'
+      email:
+        type: string
+        format: email
+        maxLength: 320
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 200
+      userStatus:
+        $ref: '../openapi.yaml#/components/schemas/PlatformUserStatus'
+      googleLinked:
+        type: boolean
+      role:
+        $ref: '../openapi.yaml#/components/schemas/MembershipRole'
+      status:
+        $ref: '../openapi.yaml#/components/schemas/MembershipStatus'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  TenantMembershipListResponse:
+    type: object
+    additionalProperties: false
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/TenantMembershipDetail'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  AuthUser:
+    type: object
+    additionalProperties: false
+    required: [id, email, displayName, platformAdmin]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      email:
+        type: string
+        format: email
+        maxLength: 320
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 200
+      platformAdmin:
+        type: boolean
+
+  AuthTenantAccess:
+    type: object
+    additionalProperties: false
+    required: [tenantId, slug, name, status, role]
+    properties:
+      tenantId:
+        $ref: '../openapi.yaml#/components/schemas/TenantId'
+      slug:
+        $ref: '../openapi.yaml#/components/schemas/TenantSlug'
+      name:
+        type: string
+        minLength: 1
+        maxLength: 200
+      status:
+        $ref: '../openapi.yaml#/components/schemas/TenantStatus'
+      role:
+        $ref: '../openapi.yaml#/components/schemas/MembershipRole'
+
+  AuthMeResponse:
+    type: object
+    additionalProperties: false
+    required: [user, tenants, activeTenant]
+    properties:
+      user:
+        $ref: '../openapi.yaml#/components/schemas/AuthUser'
+      tenants:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/AuthTenantAccess'
+      activeTenant:
+        type: [object, 'null']
+        allOf:
+          - $ref: '../openapi.yaml#/components/schemas/AuthTenantAccess'
+
+  Id:
+    type: string
+    format: uuid
+    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    description: Application-generated UUIDv7 identifier in canonical lowercase form.
+    examples: ['01933b7e-5f6a-7b8c-9d0e-1f2a3b4c5d6e']
+
+  TenantId:
+    allOf:
+      - $ref: '../openapi.yaml#/components/schemas/Id'
+    description: Opaque SaaS tenant identifier.
+
+  TenantStatus:
+    type: string
+    enum: [provisioned, active, suspended, archived]
+    description: Tenant lifecycle state. Archived tenants are never deleted.
+
+  CompanyStatus:
+    type: string
+    enum: [provisioned, active, suspended, archived]
+    description: Legal/payroll company lifecycle state.
+
+  OrganizationUnitStatus:
+    type: string
+    enum: [active, archived]
+    description: Organization unit lifecycle state. Archived units remain available for history.
+
+  TenantSlug:
+    type: string
+    minLength: 3
+    maxLength: 63
+    pattern: '^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$'
+    description: Lowercase tenant identifier suitable for administration and support tooling.
+
+  CompanyCode:
+    type: string
+    minLength: 1
+    maxLength: 50
+    description: Company code unique within the tenant.
+
+  OrganizationUnitCode:
+    type: string
+    minLength: 1
+    maxLength: 50
+    description: Unit code unique within its company and unit type.
+
+  OrganizationUnitName:
+    type: string
+    minLength: 1
+    maxLength: 200
+
+  Nik:
+    type: string
+    pattern: '^[0-9]{16}$'
+    description: Indonesian NIK represented as text to preserve leading zeroes. It is unique within the employee's company.
+    examples: ['3174010101010001']
+
+  EmployeeNumber:
+    type: string
+    minLength: 1
+    maxLength: 100
+    description: Organization-issued employee number, unique within the employee's company.
+    examples: ['EMP-000123']
+
+  FullName:
+    type: string
+    minLength: 1
+    maxLength: 200
+
+  Gender:
+    type: string
+    enum: [male, female, unspecified]
+
+  EmploymentType:
+    type: string
+    enum: [permanent, non_permanent]
+
+  EmploymentStatus:
+    type: string
+    enum: [scheduled, active, ended]
+    description: Derived from join date, end date, and the current business date.
+
+  AssignmentStatus:
+    type: string
+    enum: [scheduled, current, historical]
+    description: Derived from effective dates and the current business date.
+
+  TaxProfileStatus:
+    type: string
+    enum: [scheduled, current, historical]
+    description: Derived from effective dates and the current business date.
+
+  PtkpCode:
+    type: string
+    minLength: 1
+    maxLength: 20
+    description: Tax-dependent PTKP classification code, preserved as a domain code rather than an amount.
+    examples: ['TK/0', 'K/1']
+
+  TaxMethod:
+    type: string
+    minLength: 1
+    maxLength: 50
+    description: Tax calculation method code. The authoritative rule version is part of the tax calculation domain, not this profile resource.
+    examples: ['TER', 'annualized']
+
+  Money:
+    type: integer
+    format: int64
+    minimum: 0
+    description: Whole Indonesian Rupiah represented as an integer. Floating-point values are not accepted.
+    examples: [1250000]
+
+  PayrollPeriodStatus:
+    type: string
+    enum: [open, finalized]
+    description: Payroll period lifecycle state. Finalized periods are immutable.
+
+  PayrollComponentType:
+    type: string
+    enum: [earning, deduction, benefit, tax]
+
+  PayrollPeriodDetail:
+    type: object
+    additionalProperties: false
+    required: [id, companyId, year, month, status, openedAt, finalizedAt, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      year:
+        type: integer
+        minimum: 2000
+        maximum: 9999
+      month:
+        type: integer
+        minimum: 1
+        maximum: 12
+      status:
+        $ref: '../openapi.yaml#/components/schemas/PayrollPeriodStatus'
+      openedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      finalizedAt:
+        type: [string, 'null']
+        format: date-time
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  CreatePayrollPeriodRequest:
+    type: object
+    additionalProperties: false
+    required: [companyId, year, month]
+    properties:
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      year:
+        type: integer
+        minimum: 2000
+        maximum: 9999
+      month:
+        type: integer
+        minimum: 1
+        maximum: 12
+
+  PayrollResultItemDetail:
+    type: object
+    additionalProperties: false
+    required: [id, payrollResultId, componentCode, componentType, amount, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      payrollResultId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      componentCode:
+        type: string
+        minLength: 1
+        maxLength: 100
+        examples: [BASIC_SALARY]
+      componentType:
+        $ref: '../openapi.yaml#/components/schemas/PayrollComponentType'
+      amount:
+        $ref: '../openapi.yaml#/components/schemas/Money'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  CreatePayrollResultItemRequest:
+    type: object
+    additionalProperties: false
+    required: [componentCode, componentType, amount]
+    properties:
+      componentCode:
+        type: string
+        minLength: 1
+        maxLength: 100
+      componentType:
+        $ref: '../openapi.yaml#/components/schemas/PayrollComponentType'
+      amount:
+        $ref: '../openapi.yaml#/components/schemas/Money'
+
+  PayrollResultDetail:
+    type: object
+    additionalProperties: false
+    required: [id, payrollPeriodId, employeeId, employmentId, grossIncome, taxableIncome, takeHomePay, finalizedAt, items, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      payrollPeriodId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      employeeId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      employmentId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      grossIncome:
+        $ref: '../openapi.yaml#/components/schemas/Money'
+      taxableIncome:
+        $ref: '../openapi.yaml#/components/schemas/Money'
+      takeHomePay:
+        $ref: '../openapi.yaml#/components/schemas/Money'
+      finalizedAt:
+        type: [string, 'null']
+        format: date-time
+      items:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/PayrollResultItemDetail'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  CreatePayrollResultRequest:
+    type: object
+    additionalProperties: false
+    required: [employeeId, employmentId, grossIncome, taxableIncome, takeHomePay, items]
+    properties:
+      employeeId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      employmentId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      grossIncome:
+        $ref: '../openapi.yaml#/components/schemas/Money'
+      taxableIncome:
+        $ref: '../openapi.yaml#/components/schemas/Money'
+      takeHomePay:
+        $ref: '../openapi.yaml#/components/schemas/Money'
+      items:
+        type: array
+        minItems: 1
+        items:
+          $ref: '../openapi.yaml#/components/schemas/CreatePayrollResultItemRequest'
+
+  PayrollHistoryEntry:
+    type: object
+    additionalProperties: false
+    required: [period, result]
+    properties:
+      period:
+        $ref: '../openapi.yaml#/components/schemas/PayrollPeriodDetail'
+      result:
+        $ref: '../openapi.yaml#/components/schemas/PayrollResultDetail'
+
+  PayrollPeriodListResponse:
+    type: object
+    additionalProperties: false
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/PayrollPeriodDetail'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  PayrollHistoryResponse:
+    type: object
+    additionalProperties: false
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/PayrollHistoryEntry'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  CompanyId:
+    allOf:
+      - $ref: '../openapi.yaml#/components/schemas/Id'
+    description: Opaque company identifier.
+
+  OrganizationUnitId:
+    allOf:
+      - $ref: '../openapi.yaml#/components/schemas/Id'
+    description: Opaque identifier for an organization-managed location, department, position, or group.
+
+  TenantDetail:
+    type: object
+    required: [id, slug, name, status, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/TenantId'
+      slug:
+        $ref: '../openapi.yaml#/components/schemas/TenantSlug'
+      name:
+        type: string
+        minLength: 1
+        maxLength: 200
+      status:
+        $ref: '../openapi.yaml#/components/schemas/TenantStatus'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  CreateTenantRequest:
+    type: object
+    additionalProperties: false
+    required: [slug, name]
+    properties:
+      slug:
+        $ref: '../openapi.yaml#/components/schemas/TenantSlug'
+      name:
+        type: string
+        minLength: 1
+        maxLength: 200
+
+  UpdateTenantRequest:
+    type: object
+    additionalProperties: false
+    minProperties: 1
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 200
+
+  CompanyDetail:
+    type: object
+    required: [id, tenantId, code, legalName, displayName, status, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      tenantId:
+        $ref: '../openapi.yaml#/components/schemas/TenantId'
+      code:
+        $ref: '../openapi.yaml#/components/schemas/CompanyCode'
+      legalName:
+        type: string
+        minLength: 1
+        maxLength: 300
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 200
+      status:
+        $ref: '../openapi.yaml#/components/schemas/CompanyStatus'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  CreateCompanyRequest:
+    type: object
+    additionalProperties: false
+    required: [code, legalName, displayName]
+    properties:
+      code:
+        $ref: '../openapi.yaml#/components/schemas/CompanyCode'
+      legalName:
+        type: string
+        minLength: 1
+        maxLength: 300
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 200
+
+  UpdateCompanyRequest:
+    type: object
+    additionalProperties: false
+    minProperties: 1
+    properties:
+      code:
+        $ref: '../openapi.yaml#/components/schemas/CompanyCode'
+      legalName:
+        type: string
+        minLength: 1
+        maxLength: 300
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 200
+
+  LocationDetail:
+    type: object
+    required: [id, companyId, code, name, status, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      code:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitCode'
+      name:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitName'
+      status:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitStatus'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  DepartmentDetail:
+    allOf:
+      - $ref: '../openapi.yaml#/components/schemas/LocationDetail'
+    description: Typed department resource. Its identifier is not interchangeable with a location identifier by API contract.
+
+  PositionDetail:
+    allOf:
+      - $ref: '../openapi.yaml#/components/schemas/LocationDetail'
+    description: Typed position resource. Its identifier is not interchangeable with a location identifier by API contract.
+
+  GroupDetail:
+    allOf:
+      - $ref: '../openapi.yaml#/components/schemas/LocationDetail'
+    description: Typed group resource. Its identifier is not interchangeable with a location identifier by API contract.
+
+  CreateLocationRequest:
+    type: object
+    additionalProperties: false
+    required: [companyId, code, name]
+    properties:
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      code:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitCode'
+      name:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitName'
+
+  CreateDepartmentRequest:
+    $ref: '../openapi.yaml#/components/schemas/CreateLocationRequest'
+
+  CreatePositionRequest:
+    $ref: '../openapi.yaml#/components/schemas/CreateLocationRequest'
+
+  CreateGroupRequest:
+    $ref: '../openapi.yaml#/components/schemas/CreateLocationRequest'
+
+  UpdateLocationRequest:
+    type: object
+    additionalProperties: false
+    minProperties: 1
+    properties:
+      code:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitCode'
+      name:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitName'
+
+  UpdateDepartmentRequest:
+    $ref: '../openapi.yaml#/components/schemas/UpdateLocationRequest'
+
+  UpdatePositionRequest:
+    $ref: '../openapi.yaml#/components/schemas/UpdateLocationRequest'
+
+  UpdateGroupRequest:
+    $ref: '../openapi.yaml#/components/schemas/UpdateLocationRequest'
+
+  TenantListResponse:
+    type: object
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/TenantDetail'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  CompanyListResponse:
+    type: object
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/CompanyDetail'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  LocationListResponse:
+    type: object
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/LocationDetail'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  DepartmentListResponse:
+    type: object
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/DepartmentDetail'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  PositionListResponse:
+    type: object
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/PositionDetail'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  GroupListResponse:
+    type: object
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/GroupDetail'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  NullableOrganizationUnitId:
+    oneOf:
+      - $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+      - type: 'null'
+
+  Timestamp:
+    type: string
+    format: date-time
+    description: RFC 3339 timestamp in UTC.
+
+  Date:
+    type: string
+    format: date
+    description: ISO 8601 calendar date without a time zone.
+
+  NullableDate:
+    type: [string, 'null']
+    format: date
+
+  Pagination:
+    type: object
+    required: [nextCursor]
+    properties:
+      nextCursor:
+        type: [string, 'null']
+        description: Cursor for the next page, or null when there is no next page.
+
+  ErrorResponse:
+    type: object
+    required: [code, message, details]
+    properties:
+      code:
+        type: string
+        description: Stable machine-readable error code.
+        examples: [EMPLOYMENT_ALREADY_ENDED]
+      message:
+        type: string
+        description: Human-readable explanation safe for API consumers.
+      details:
+        type: object
+        description: Structured, error-specific context.
+        additionalProperties: true
+
+  EmployeeSummary:
+    type: object
+    required: [id, companyId, employeeNumber, fullName, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      employeeNumber:
+        $ref: '../openapi.yaml#/components/schemas/EmployeeNumber'
+      fullName:
+        $ref: '../openapi.yaml#/components/schemas/FullName'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  EmployeeDetail:
+    type: object
+    required: [id, companyId, employeeNumber, fullName, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      employeeNumber:
+        $ref: '../openapi.yaml#/components/schemas/EmployeeNumber'
+      fullName:
+        $ref: '../openapi.yaml#/components/schemas/FullName'
+      birthPlace:
+        type: [string, 'null']
+        maxLength: 200
+      birthDate:
+        type: [string, 'null']
+        format: date
+      gender:
+        oneOf:
+          - $ref: '../openapi.yaml#/components/schemas/Gender'
+          - type: 'null'
+      email:
+        oneOf:
+          - type: string
+            format: email
+          - type: 'null'
+      phone:
+        type: [string, 'null']
+        maxLength: 50
+      address:
+        type: [string, 'null']
+        maxLength: 2000
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  EmployeeIdentityDetail:
+    type: object
+    required: [employeeId, nik]
+    properties:
+      employeeId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      nik:
+        $ref: '../openapi.yaml#/components/schemas/Nik'
+
+  CreateEmployeeRequest:
+    type: object
+    additionalProperties: false
+    required: [companyId, employeeNumber, nik, fullName]
+    properties:
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      employeeNumber:
+        $ref: '../openapi.yaml#/components/schemas/EmployeeNumber'
+      nik:
+        $ref: '../openapi.yaml#/components/schemas/Nik'
+      fullName:
+        $ref: '../openapi.yaml#/components/schemas/FullName'
+      birthPlace:
+        type: string
+        maxLength: 200
+      birthDate:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+      gender:
+        $ref: '../openapi.yaml#/components/schemas/Gender'
+      email:
+        type: string
+        format: email
+        maxLength: 320
+      phone:
+        type: string
+        maxLength: 50
+      address:
+        type: string
+        maxLength: 2000
+
+  UpdateEmployeeRequest:
+    type: object
+    additionalProperties: false
+    minProperties: 1
+    properties:
+      fullName:
+        $ref: '../openapi.yaml#/components/schemas/FullName'
+      birthPlace:
+        type: [string, 'null']
+        maxLength: 200
+      birthDate:
+        type: [string, 'null']
+        format: date
+      gender:
+        oneOf:
+          - $ref: '../openapi.yaml#/components/schemas/Gender'
+          - type: 'null'
+      email:
+        oneOf:
+          - type: string
+            format: email
+            maxLength: 320
+          - type: 'null'
+      phone:
+        type: [string, 'null']
+        maxLength: 50
+      address:
+        type: [string, 'null']
+        maxLength: 2000
+
+  EmploymentDetail:
+    type: object
+    required: [id, employeeId, companyId, employmentType, joinDate, endDate, status, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      employeeId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      employmentType:
+        $ref: '../openapi.yaml#/components/schemas/EmploymentType'
+      joinDate:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+      endDate:
+        $ref: '../openapi.yaml#/components/schemas/NullableDate'
+      terminationReason:
+        type: [string, 'null']
+        maxLength: 100
+      status:
+        $ref: '../openapi.yaml#/components/schemas/EmploymentStatus'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  StartEmploymentRequest:
+    type: object
+    additionalProperties: false
+    required: [companyId, employmentType, joinDate]
+    properties:
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      employmentType:
+        $ref: '../openapi.yaml#/components/schemas/EmploymentType'
+      joinDate:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+
+  RejoinEmploymentRequest:
+    type: object
+    additionalProperties: false
+    required: [companyId, employmentType, joinDate]
+    properties:
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      employmentType:
+        $ref: '../openapi.yaml#/components/schemas/EmploymentType'
+      joinDate:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+      previousEmploymentId:
+        description: Optional explicit reference to the ended employment being followed by this rejoin.
+        $ref: '../openapi.yaml#/components/schemas/Id'
+
+  ResignEmploymentRequest:
+    type: object
+    additionalProperties: false
+    required: [lastWorkingDate, terminationReason]
+    properties:
+      lastWorkingDate:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+      terminationReason:
+        type: string
+        minLength: 1
+        maxLength: 100
+
+  AssignmentDetail:
+    type: object
+    required: [id, employmentId, effectiveFrom, effectiveTo, status, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      employmentId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      locationId:
+        $ref: '../openapi.yaml#/components/schemas/NullableOrganizationUnitId'
+      departmentId:
+        $ref: '../openapi.yaml#/components/schemas/NullableOrganizationUnitId'
+      positionId:
+        $ref: '../openapi.yaml#/components/schemas/NullableOrganizationUnitId'
+      groupId:
+        $ref: '../openapi.yaml#/components/schemas/NullableOrganizationUnitId'
+      effectiveFrom:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+      effectiveTo:
+        $ref: '../openapi.yaml#/components/schemas/NullableDate'
+      status:
+        $ref: '../openapi.yaml#/components/schemas/AssignmentStatus'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  CreateAssignmentRequest:
+    type: object
+    additionalProperties: false
+    required: [effectiveFrom]
+    properties:
+      locationId:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+      departmentId:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+      positionId:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+      groupId:
+        $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+      effectiveFrom:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+    description: At least one organizational placement reference should be supplied; cross-field validation is a business rule.
+
+  TaxProfileDetail:
+    type: object
+    required: [id, employeeId, nik, ptkpCode, taxMethod, effectiveFrom, effectiveTo, status, createdAt, updatedAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      employeeId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      nik:
+        $ref: '../openapi.yaml#/components/schemas/Nik'
+      npwp:
+        type: [string, 'null']
+        minLength: 1
+        maxLength: 32
+        description: Normalized tax identifier, if available. Formatting punctuation is not stored in this API field.
+      ptkpCode:
+        $ref: '../openapi.yaml#/components/schemas/PtkpCode'
+      taxMethod:
+        $ref: '../openapi.yaml#/components/schemas/TaxMethod'
+      effectiveFrom:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+      effectiveTo:
+        $ref: '../openapi.yaml#/components/schemas/NullableDate'
+      status:
+        $ref: '../openapi.yaml#/components/schemas/TaxProfileStatus'
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      updatedAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  CreateTaxProfileRequest:
+    type: object
+    additionalProperties: false
+    required: [nik, ptkpCode, taxMethod, effectiveFrom]
+    properties:
+      nik:
+        $ref: '../openapi.yaml#/components/schemas/Nik'
+      npwp:
+        type: string
+        minLength: 1
+        maxLength: 32
+        description: Normalized tax identifier without formatting punctuation.
+      ptkpCode:
+        $ref: '../openapi.yaml#/components/schemas/PtkpCode'
+      taxMethod:
+        $ref: '../openapi.yaml#/components/schemas/TaxMethod'
+      effectiveFrom:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+
+  EmployeeListResponse:
+    type: object
+    required: [data, pagination]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/EmployeeSummary'
+      pagination:
+        $ref: '../openapi.yaml#/components/schemas/Pagination'
+
+  EmploymentListResponse:
+    type: object
+    required: [data]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/EmploymentDetail'
+
+  AssignmentListResponse:
+    type: object
+    required: [data]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/AssignmentDetail'
+
+  TaxProfileListResponse:
+    type: object
+    required: [data]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/TaxProfileDetail'

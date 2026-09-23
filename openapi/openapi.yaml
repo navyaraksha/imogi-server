@@ -1,0 +1,985 @@
+openapi: 3.1.0
+info:
+  title: Imogi HRIS API
+  version: 0.1.0
+  license:
+    name: Proprietary
+    identifier: proprietary
+  description: |
+    API-first contract for the Imogi multi-tenant HRIS foundation. This
+    version covers tenant and company organization resources together with
+    employee identity, employment history, assignments, and tax profiles.
+
+    Employment, assignment, and tax-profile history is append/close oriented.
+    Historical records are not edited in place by this contract. A rejoin
+    creates a new employment; it never reactivates an ended employment.
+servers:
+  - url: /
+    description: Relative server URL; deployment-specific configuration supplies the host.
+tags:
+  - name: Platform Tenants
+    description: Platform-admin tenant provisioning and lifecycle.
+  - name: Tenants
+    description: Active tenant metadata resolved from trusted request context.
+  - name: Companies
+    description: Legal and payroll entities within the active tenant.
+  - name: Organization Units
+    description: Typed, company-scoped organizational reference data.
+  - name: Employees
+    description: Employee identity and personal data.
+  - name: Employments
+    description: Continuous employment relationships and lifecycle commands.
+  - name: Assignments
+    description: Historical organizational placement within an employment.
+  - name: Tax Profiles
+    description: Effective-dated employee tax profile history.
+  - name: Payroll
+    description: Company-scoped historical payroll periods and externally calculated results.
+  - name: Import Batches
+    description: Asynchronous file validation and explicit import commit workflows.
+  - name: Import Templates
+    description: Versioned templates for supported import formats.
+  - name: Authentication
+    description: Google identity validation and tenant discovery.
+  - name: Platform Users
+    description: Platform identity pre-registration and access administration.
+  - name: Tenant Memberships
+    description: Tenant-scoped and platform-scoped membership administration.
+security:
+  - OAuth2: []
+  - ImogiSession: []
+x-imogi-authorization:
+  policyDocument: ./components/capabilities.yaml
+  evaluation: OAuth scopes AND required capabilities AND company/resource policy
+  tenantContext:
+    source: validated Google identity token plus server-side membership lookup
+    selectorHeader: X-Imogi-Tenant-ID
+    clientSuppliedTenantIdIsAuthoritative: false
+paths:
+  /api/v1/auth/session:
+    $ref: './paths/auth.yaml#/paths/~1api~1v1~1auth~1session'
+  /api/v1/auth/me:
+    $ref: './paths/auth.yaml#/paths/~1api~1v1~1auth~1me'
+  /api/v1/platform/users:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1platform~1users'
+  /api/v1/platform/users/{userId}:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1platform~1users~1{userId}'
+  /api/v1/platform/users/{userId}/block:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1platform~1users~1{userId}~1block'
+  /api/v1/platform/tenants/{tenantId}/memberships:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1platform~1tenants~1{tenantId}~1memberships'
+  /api/v1/platform/tenants/{tenantId}/memberships/{membershipId}:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1platform~1tenants~1{tenantId}~1memberships~1{membershipId}'
+  /api/v1/platform/tenants/{tenantId}/memberships/{membershipId}/revoke:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1platform~1tenants~1{tenantId}~1memberships~1{membershipId}~1revoke'
+  /api/v1/platform/tenants/{tenantId}/memberships/{membershipId}/reactivate:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1platform~1tenants~1{tenantId}~1memberships~1{membershipId}~1reactivate'
+  /api/v1/tenant/memberships:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1tenant~1memberships'
+  /api/v1/tenant/memberships/{membershipId}:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1tenant~1memberships~1{membershipId}'
+  /api/v1/tenant/memberships/{membershipId}/revoke:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1tenant~1memberships~1{membershipId}~1revoke'
+  /api/v1/tenant/memberships/{membershipId}/reactivate:
+    $ref: './paths/identity.yaml#/paths/~1api~1v1~1tenant~1memberships~1{membershipId}~1reactivate'
+  /api/v1/platform/tenants:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1platform~1tenants'
+  /api/v1/platform/tenants/{tenantId}:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1platform~1tenants~1{tenantId}'
+  /api/v1/platform/tenants/{tenantId}/activate:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1platform~1tenants~1{tenantId}~1activate'
+  /api/v1/platform/tenants/{tenantId}/suspend:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1platform~1tenants~1{tenantId}~1suspend'
+  /api/v1/platform/tenants/{tenantId}/archive:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1platform~1tenants~1{tenantId}~1archive'
+  /api/v1/tenant:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1tenant'
+  /api/v1/companies:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1companies'
+  /api/v1/companies/{companyId}:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1companies~1{companyId}'
+  /api/v1/companies/{companyId}/activate:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1companies~1{companyId}~1activate'
+  /api/v1/companies/{companyId}/suspend:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1companies~1{companyId}~1suspend'
+  /api/v1/companies/{companyId}/archive:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1companies~1{companyId}~1archive'
+  /api/v1/locations:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1locations'
+  /api/v1/locations/{locationId}:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1locations~1{locationId}'
+  /api/v1/locations/{locationId}/archive:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1locations~1{locationId}~1archive'
+  /api/v1/departments:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1departments'
+  /api/v1/departments/{departmentId}:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1departments~1{departmentId}'
+  /api/v1/departments/{departmentId}/archive:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1departments~1{departmentId}~1archive'
+  /api/v1/positions:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1positions'
+  /api/v1/positions/{positionId}:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1positions~1{positionId}'
+  /api/v1/positions/{positionId}/archive:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1positions~1{positionId}~1archive'
+  /api/v1/groups:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1groups'
+  /api/v1/groups/{groupId}:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1groups~1{groupId}'
+  /api/v1/groups/{groupId}/archive:
+    $ref: './paths/organization.yaml#/paths/~1api~1v1~1groups~1{groupId}~1archive'
+  /api/v1/employees:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+    get:
+      tags: [Employees]
+      operationId: listEmployees
+      security:
+        - OAuth2: [employee:read-basic]
+      x-required-capabilities:
+        all:
+          - employee.read.basic
+      summary: List employees
+      description: |
+        Returns employee summaries. Sensitive identifiers such as NIK are
+        intentionally excluded from this collection response. Search applies
+        to employee number and full name.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/CompanyIdQuery'
+        - name: search
+          in: query
+          description: Case-insensitive search over employee number and full name.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+        - name: employmentStatus
+          in: query
+          description: Filter by the derived status of the employee's current employment.
+          schema:
+            $ref: '#/components/schemas/EmploymentStatus'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Employee page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeListResponse'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+    post:
+      tags: [Employees]
+      operationId: createEmployee
+      security:
+        - OAuth2: [employee:write-pii]
+      x-required-capabilities:
+        all:
+          - employee.create
+          - employee.write.identity
+      summary: Create an employee
+      description: |
+        Creates a company-scoped employee identity. This does not start an
+        employment. The supplied companyId must belong to the active tenant
+        and the caller must be authorized for that company.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployeeRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '201':
+          description: Employee created.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeDetail'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/employees/{employeeId}:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+      - $ref: '#/components/parameters/EmployeeId'
+    get:
+      tags: [Employees]
+      operationId: getEmployee
+      security:
+        - OAuth2: [employee:read-basic]
+      x-required-capabilities:
+        all:
+          - employee.read.basic
+      summary: Get an employee
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Employee detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Employees]
+      operationId: updateEmployeePersonalData
+      summary: Update employee personal data
+      security:
+        - OAuth2: [employee:write-basic]
+      x-required-capabilities:
+        all:
+          - employee.update.personal
+      description: |
+        Updates mutable personal data only. Employee number and NIK are
+        identity attributes in this version and are not changed through this
+        endpoint. A nullable field set to null explicitly clears that value;
+        an omitted field is unchanged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmployeeRequest'
+      responses:
+        '200':
+          description: Updated employee detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeDetail'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/employees/{employeeId}/identity:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+      - $ref: '#/components/parameters/EmployeeId'
+    get:
+      tags: [Employees]
+      operationId: getEmployeeIdentity
+      summary: Get restricted employee identity data
+      description: Returns NIK separately from general employee detail and requires a restricted PII scope.
+      security:
+        - OAuth2: [employee:read-pii]
+      x-required-capabilities:
+        all:
+          - employee.read.identity
+      responses:
+        '200':
+          description: Restricted employee identity data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeIdentityDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/employees/{employeeId}/employments:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+      - $ref: '#/components/parameters/EmployeeId'
+    get:
+      tags: [Employments]
+      operationId: listEmployeeEmployments
+      security:
+        - OAuth2: [employment:read]
+      x-required-capabilities:
+        all:
+          - employment.read
+      summary: List an employee's employment history
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Employment history ordered from newest to oldest.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmploymentListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Employments]
+      operationId: startEmployment
+      security:
+        - OAuth2: [employment:write]
+      x-required-capabilities:
+        all:
+          - employment.start
+      summary: Start an employment
+      description: |
+        Creates a new continuous employment relationship. The employee must
+        not already have an active or scheduled employment. V0 treats
+        concurrent employments as unsupported because payroll and tax
+        ownership rules for simultaneous employments are not yet defined.
+        Use the rejoin command when the employee has ended a prior employment
+        and is returning.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartEmploymentRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '201':
+          description: Employment created.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmploymentDetail'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/employees/{employeeId}/employments/rejoin:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+      - $ref: '#/components/parameters/EmployeeId'
+    post:
+      tags: [Employments]
+      operationId: rejoinEmployee
+      security:
+        - OAuth2: [employment:write]
+      x-required-capabilities:
+        all:
+          - employment.rejoin
+      summary: Create a new employment for a returning employee
+      description: |
+        Creates a new employment after a previous employment has ended. The
+        previous employment remains unchanged and all future payroll and tax
+        records will refer to this new employment ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejoinEmploymentRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '201':
+          description: New employment created.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmploymentDetail'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/employments/{employmentId}:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+      - $ref: '#/components/parameters/EmploymentId'
+    get:
+      tags: [Employments]
+      operationId: getEmployment
+      security:
+        - OAuth2: [employment:read]
+      x-required-capabilities:
+        all:
+          - employment.read
+      summary: Get an employment
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Employment detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmploymentDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/employments/{employmentId}/resign:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+      - $ref: '#/components/parameters/EmploymentId'
+    post:
+      tags: [Employments]
+      operationId: resignEmployment
+      security:
+        - OAuth2: [employment:write]
+      x-required-capabilities:
+        all:
+          - employment.resign
+      summary: End an employment
+      description: |
+        Ends an active employment at the supplied last working date. This
+        command does not reactivate or mutate any previous employment. Final
+        PPh 21 calculation and withholding-document generation are later tax
+        workflows; this employee-module contract preserves the employment
+        lifecycle boundary so those workflows can be added without changing
+        the employment history model.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResignEmploymentRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Employment ended.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmploymentDetail'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/employments/{employmentId}/assignments:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+      - $ref: '#/components/parameters/EmploymentId'
+    get:
+      tags: [Assignments]
+      operationId: listEmploymentAssignments
+      security:
+        - OAuth2: [employment:read]
+      x-required-capabilities:
+        all:
+          - assignment.read
+      summary: List assignment history
+      description: Returns assignments ordered by effective date, newest first.
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Assignment history.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Assignments]
+      operationId: createEmploymentAssignment
+      security:
+        - OAuth2: [employment:write]
+      x-required-capabilities:
+        all:
+          - assignment.write
+      summary: Add an assignment to an employment
+      description: |
+        Adds an effective-dated organizational placement. Creating a later
+        assignment closes the preceding open assignment at the new effective
+        date. Assignments are scoped to an employment and inherit its company;
+        a company transfer therefore requires a new employment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssignmentRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '201':
+          description: Assignment created.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentDetail'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/assignments/{assignmentId}:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+      - $ref: '#/components/parameters/AssignmentId'
+    get:
+      tags: [Assignments]
+      operationId: getAssignment
+      security:
+        - OAuth2: [employment:read]
+      x-required-capabilities:
+        all:
+          - assignment.read
+      summary: Get an assignment
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Assignment detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/employees/{employeeId}/tax-profiles:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+      - $ref: '#/components/parameters/EmployeeId'
+    get:
+      tags: [Tax Profiles]
+      operationId: listEmployeeTaxProfiles
+      security:
+        - OAuth2: [tax:read]
+      x-required-capabilities:
+        all:
+          - tax_profile.read
+      summary: List an employee's tax profile history
+      description: |
+        Returns effective-dated tax profile snapshots. Historical tax
+        calculations must use the profile effective for their tax period,
+        rather than the employee's current profile.
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Tax profile history ordered from newest to oldest.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxProfileListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Tax Profiles]
+      operationId: createEmployeeTaxProfile
+      security:
+        - OAuth2: [tax:write]
+      x-required-capabilities:
+        all:
+          - tax_profile.write
+      summary: Add a tax profile version
+      description: |
+        Adds a new effective-dated tax profile. The effective period must not
+        overlap another profile for the employee. Existing historical profiles
+        are not overwritten.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaxProfileRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '201':
+          description: Tax profile created.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxProfileDetail'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/tax-profiles/{taxProfileId}:
+    parameters:
+      - $ref: '#/components/parameters/TenantSelector'
+      - $ref: '#/components/parameters/TaxProfileId'
+    get:
+      tags: [Tax Profiles]
+      operationId: getTaxProfile
+      security:
+        - OAuth2: [tax:read]
+      x-required-capabilities:
+        all:
+          - tax_profile.read
+      summary: Get a tax profile version
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Tax profile detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxProfileDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/payroll-periods:
+    $ref: './paths/payroll.yaml#/paths/~1api~1v1~1payroll-periods'
+  /api/v1/payroll-periods/{payrollPeriodId}:
+    $ref: './paths/payroll.yaml#/paths/~1api~1v1~1payroll-periods~1{payrollPeriodId}'
+  /api/v1/payroll-periods/{payrollPeriodId}/results:
+    $ref: './paths/payroll.yaml#/paths/~1api~1v1~1payroll-periods~1{payrollPeriodId}~1results'
+  /api/v1/payroll-periods/{payrollPeriodId}/finalize:
+    $ref: './paths/payroll.yaml#/paths/~1api~1v1~1payroll-periods~1{payrollPeriodId}~1finalize'
+  /api/v1/employees/{employeeId}/payroll-history:
+    $ref: './paths/payroll.yaml#/paths/~1api~1v1~1employees~1{employeeId}~1payroll-history'
+  /api/v1/import-batches:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches'
+  /api/v1/import-batches/{batchId}:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}'
+  /api/v1/import-batches/{batchId}/upload-complete:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1upload-complete'
+  /api/v1/import-batches/{batchId}/upload:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1upload'
+  /api/v1/import-batches/{batchId}/commit:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1commit'
+  /api/v1/import-batches/{batchId}/cancel:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1cancel'
+  /api/v1/import-batches/{batchId}/artifacts:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1artifacts'
+  /api/v1/import-batches/{batchId}/artifacts/{artifactId}/download-url:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1artifacts~1{artifactId}~1download-url'
+  /api/v1/import-templates:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-templates'
+components:
+  parameters:
+    TenantSelector:
+      $ref: './components/parameters.yaml#/parameters/TenantSelector'
+    TenantId:
+      $ref: './components/parameters.yaml#/parameters/TenantId'
+    CompanyId:
+      $ref: './components/parameters.yaml#/parameters/CompanyId'
+    CompanyIdQuery:
+      $ref: './components/parameters.yaml#/parameters/CompanyIdQuery'
+    PayrollCompanyIdQuery:
+      $ref: './components/parameters.yaml#/parameters/PayrollCompanyIdQuery'
+    LocationId:
+      $ref: './components/parameters.yaml#/parameters/LocationId'
+    DepartmentId:
+      $ref: './components/parameters.yaml#/parameters/DepartmentId'
+    PositionId:
+      $ref: './components/parameters.yaml#/parameters/PositionId'
+    GroupId:
+      $ref: './components/parameters.yaml#/parameters/GroupId'
+    EmployeeId:
+      $ref: './components/parameters.yaml#/parameters/EmployeeId'
+    EmploymentId:
+      $ref: './components/parameters.yaml#/parameters/EmploymentId'
+    AssignmentId:
+      $ref: './components/parameters.yaml#/parameters/AssignmentId'
+    TaxProfileId:
+      $ref: './components/parameters.yaml#/parameters/TaxProfileId'
+    PayrollPeriodId:
+      $ref: './components/parameters.yaml#/parameters/PayrollPeriodId'
+    PayrollPeriodStatusQuery:
+      $ref: './components/parameters.yaml#/parameters/PayrollPeriodStatusQuery'
+    PayrollYear:
+      $ref: './components/parameters.yaml#/parameters/PayrollYear'
+    FileBatchId:
+      $ref: './components/parameters.yaml#/parameters/FileBatchId'
+    FileArtifactId:
+      $ref: './components/parameters.yaml#/parameters/FileArtifactId'
+    PlatformUserId:
+      $ref: './components/parameters.yaml#/parameters/PlatformUserId'
+    MembershipId:
+      $ref: './components/parameters.yaml#/parameters/MembershipId'
+    Limit:
+      $ref: './components/parameters.yaml#/parameters/Limit'
+    Cursor:
+      $ref: './components/parameters.yaml#/parameters/Cursor'
+  headers:
+    Location:
+      $ref: './components/headers.yaml#/headers/Location'
+  responses:
+    Unauthorized:
+      $ref: './components/responses.yaml#/responses/Unauthorized'
+    Forbidden:
+      $ref: './components/responses.yaml#/responses/Forbidden'
+    InvalidRequest:
+      $ref: './components/responses.yaml#/responses/InvalidRequest'
+    NotFound:
+      $ref: './components/responses.yaml#/responses/NotFound'
+    Conflict:
+      $ref: './components/responses.yaml#/responses/Conflict'
+  schemas:
+    AuthUser:
+      $ref: './components/schemas.yaml#/schemas/AuthUser'
+    AuthTenantAccess:
+      $ref: './components/schemas.yaml#/schemas/AuthTenantAccess'
+    AuthMeResponse:
+      $ref: './components/schemas.yaml#/schemas/AuthMeResponse'
+    Id:
+      $ref: './components/schemas.yaml#/schemas/Id'
+    TenantId:
+      $ref: './components/schemas.yaml#/schemas/TenantId'
+    TenantStatus:
+      $ref: './components/schemas.yaml#/schemas/TenantStatus'
+    CompanyStatus:
+      $ref: './components/schemas.yaml#/schemas/CompanyStatus'
+    OrganizationUnitStatus:
+      $ref: './components/schemas.yaml#/schemas/OrganizationUnitStatus'
+    TenantSlug:
+      $ref: './components/schemas.yaml#/schemas/TenantSlug'
+    CompanyCode:
+      $ref: './components/schemas.yaml#/schemas/CompanyCode'
+    OrganizationUnitCode:
+      $ref: './components/schemas.yaml#/schemas/OrganizationUnitCode'
+    OrganizationUnitName:
+      $ref: './components/schemas.yaml#/schemas/OrganizationUnitName'
+    Nik:
+      $ref: './components/schemas.yaml#/schemas/Nik'
+    EmployeeNumber:
+      $ref: './components/schemas.yaml#/schemas/EmployeeNumber'
+    FullName:
+      $ref: './components/schemas.yaml#/schemas/FullName'
+    Gender:
+      $ref: './components/schemas.yaml#/schemas/Gender'
+    EmploymentType:
+      $ref: './components/schemas.yaml#/schemas/EmploymentType'
+    EmploymentStatus:
+      $ref: './components/schemas.yaml#/schemas/EmploymentStatus'
+    AssignmentStatus:
+      $ref: './components/schemas.yaml#/schemas/AssignmentStatus'
+    TaxProfileStatus:
+      $ref: './components/schemas.yaml#/schemas/TaxProfileStatus'
+    PtkpCode:
+      $ref: './components/schemas.yaml#/schemas/PtkpCode'
+    TaxMethod:
+      $ref: './components/schemas.yaml#/schemas/TaxMethod'
+    Money:
+      $ref: './components/schemas.yaml#/schemas/Money'
+    PayrollPeriodStatus:
+      $ref: './components/schemas.yaml#/schemas/PayrollPeriodStatus'
+    PayrollComponentType:
+      $ref: './components/schemas.yaml#/schemas/PayrollComponentType'
+    CompanyId:
+      $ref: './components/schemas.yaml#/schemas/CompanyId'
+    OrganizationUnitId:
+      $ref: './components/schemas.yaml#/schemas/OrganizationUnitId'
+    NullableOrganizationUnitId:
+      $ref: './components/schemas.yaml#/schemas/NullableOrganizationUnitId'
+    TenantDetail:
+      $ref: './components/schemas.yaml#/schemas/TenantDetail'
+    CreateTenantRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateTenantRequest'
+    UpdateTenantRequest:
+      $ref: './components/schemas.yaml#/schemas/UpdateTenantRequest'
+    CompanyDetail:
+      $ref: './components/schemas.yaml#/schemas/CompanyDetail'
+    CreateCompanyRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateCompanyRequest'
+    UpdateCompanyRequest:
+      $ref: './components/schemas.yaml#/schemas/UpdateCompanyRequest'
+    LocationDetail:
+      $ref: './components/schemas.yaml#/schemas/LocationDetail'
+    DepartmentDetail:
+      $ref: './components/schemas.yaml#/schemas/DepartmentDetail'
+    PositionDetail:
+      $ref: './components/schemas.yaml#/schemas/PositionDetail'
+    GroupDetail:
+      $ref: './components/schemas.yaml#/schemas/GroupDetail'
+    CreateLocationRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateLocationRequest'
+    CreateDepartmentRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateDepartmentRequest'
+    CreatePositionRequest:
+      $ref: './components/schemas.yaml#/schemas/CreatePositionRequest'
+    CreateGroupRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateGroupRequest'
+    UpdateLocationRequest:
+      $ref: './components/schemas.yaml#/schemas/UpdateLocationRequest'
+    UpdateDepartmentRequest:
+      $ref: './components/schemas.yaml#/schemas/UpdateDepartmentRequest'
+    UpdatePositionRequest:
+      $ref: './components/schemas.yaml#/schemas/UpdatePositionRequest'
+    UpdateGroupRequest:
+      $ref: './components/schemas.yaml#/schemas/UpdateGroupRequest'
+    TenantListResponse:
+      $ref: './components/schemas.yaml#/schemas/TenantListResponse'
+    CompanyListResponse:
+      $ref: './components/schemas.yaml#/schemas/CompanyListResponse'
+    LocationListResponse:
+      $ref: './components/schemas.yaml#/schemas/LocationListResponse'
+    DepartmentListResponse:
+      $ref: './components/schemas.yaml#/schemas/DepartmentListResponse'
+    PositionListResponse:
+      $ref: './components/schemas.yaml#/schemas/PositionListResponse'
+    GroupListResponse:
+      $ref: './components/schemas.yaml#/schemas/GroupListResponse'
+    Timestamp:
+      $ref: './components/schemas.yaml#/schemas/Timestamp'
+    Date:
+      $ref: './components/schemas.yaml#/schemas/Date'
+    NullableDate:
+      $ref: './components/schemas.yaml#/schemas/NullableDate'
+    Pagination:
+      $ref: './components/schemas.yaml#/schemas/Pagination'
+    ErrorResponse:
+      $ref: './components/schemas.yaml#/schemas/ErrorResponse'
+    PlatformUserStatus:
+      $ref: './components/schemas.yaml#/schemas/PlatformUserStatus'
+    MembershipRole:
+      $ref: './components/schemas.yaml#/schemas/MembershipRole'
+    MembershipStatus:
+      $ref: './components/schemas.yaml#/schemas/MembershipStatus'
+    PlatformUserSummary:
+      $ref: './components/schemas.yaml#/schemas/PlatformUserSummary'
+    PlatformUserDetail:
+      $ref: './components/schemas.yaml#/schemas/PlatformUserDetail'
+    CreatePlatformUserRequest:
+      $ref: './components/schemas.yaml#/schemas/CreatePlatformUserRequest'
+    PlatformUserListResponse:
+      $ref: './components/schemas.yaml#/schemas/PlatformUserListResponse'
+    CreateTenantMembershipRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateTenantMembershipRequest'
+    UpdateTenantMembershipRequest:
+      $ref: './components/schemas.yaml#/schemas/UpdateTenantMembershipRequest'
+    TenantMembershipDetail:
+      $ref: './components/schemas.yaml#/schemas/TenantMembershipDetail'
+    TenantMembershipListResponse:
+      $ref: './components/schemas.yaml#/schemas/TenantMembershipListResponse'
+    EmployeeSummary:
+      $ref: './components/schemas.yaml#/schemas/EmployeeSummary'
+    EmployeeDetail:
+      $ref: './components/schemas.yaml#/schemas/EmployeeDetail'
+    EmployeeIdentityDetail:
+      $ref: './components/schemas.yaml#/schemas/EmployeeIdentityDetail'
+    CreateEmployeeRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateEmployeeRequest'
+    UpdateEmployeeRequest:
+      $ref: './components/schemas.yaml#/schemas/UpdateEmployeeRequest'
+    EmploymentDetail:
+      $ref: './components/schemas.yaml#/schemas/EmploymentDetail'
+    StartEmploymentRequest:
+      $ref: './components/schemas.yaml#/schemas/StartEmploymentRequest'
+    RejoinEmploymentRequest:
+      $ref: './components/schemas.yaml#/schemas/RejoinEmploymentRequest'
+    ResignEmploymentRequest:
+      $ref: './components/schemas.yaml#/schemas/ResignEmploymentRequest'
+    AssignmentDetail:
+      $ref: './components/schemas.yaml#/schemas/AssignmentDetail'
+    CreateAssignmentRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateAssignmentRequest'
+    TaxProfileDetail:
+      $ref: './components/schemas.yaml#/schemas/TaxProfileDetail'
+    CreateTaxProfileRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateTaxProfileRequest'
+    EmployeeListResponse:
+      $ref: './components/schemas.yaml#/schemas/EmployeeListResponse'
+    EmploymentListResponse:
+      $ref: './components/schemas.yaml#/schemas/EmploymentListResponse'
+    AssignmentListResponse:
+      $ref: './components/schemas.yaml#/schemas/AssignmentListResponse'
+    TaxProfileListResponse:
+      $ref: './components/schemas.yaml#/schemas/TaxProfileListResponse'
+    PayrollPeriodDetail:
+      $ref: './components/schemas.yaml#/schemas/PayrollPeriodDetail'
+    CreatePayrollPeriodRequest:
+      $ref: './components/schemas.yaml#/schemas/CreatePayrollPeriodRequest'
+    PayrollResultItemDetail:
+      $ref: './components/schemas.yaml#/schemas/PayrollResultItemDetail'
+    CreatePayrollResultItemRequest:
+      $ref: './components/schemas.yaml#/schemas/CreatePayrollResultItemRequest'
+    PayrollResultDetail:
+      $ref: './components/schemas.yaml#/schemas/PayrollResultDetail'
+    CreatePayrollResultRequest:
+      $ref: './components/schemas.yaml#/schemas/CreatePayrollResultRequest'
+    PayrollHistoryEntry:
+      $ref: './components/schemas.yaml#/schemas/PayrollHistoryEntry'
+    PayrollPeriodListResponse:
+      $ref: './components/schemas.yaml#/schemas/PayrollPeriodListResponse'
+    PayrollHistoryResponse:
+      $ref: './components/schemas.yaml#/schemas/PayrollHistoryResponse'
+    ImportOperation:
+      $ref: './components/schemas.yaml#/schemas/ImportOperation'
+    ImportBatchStatus:
+      $ref: './components/schemas.yaml#/schemas/ImportBatchStatus'
+    ImportBatchDetail:
+      $ref: './components/schemas.yaml#/schemas/ImportBatchDetail'
+    CreateImportBatchRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateImportBatchRequest'
+    ImportBatchUploadResponse:
+      $ref: './components/schemas.yaml#/schemas/ImportBatchUploadResponse'
+    UploadSession:
+      $ref: './components/schemas.yaml#/schemas/UploadSession'
+    ImportBatchJobResponse:
+      $ref: './components/schemas.yaml#/schemas/ImportBatchJobResponse'
+    ImportBatchArtifact:
+      $ref: './components/schemas.yaml#/schemas/ImportBatchArtifact'
+    ImportBatchArtifactListResponse:
+      $ref: './components/schemas.yaml#/schemas/ImportBatchArtifactListResponse'
+    ArtifactDownloadURLResponse:
+      $ref: './components/schemas.yaml#/schemas/ArtifactDownloadURLResponse'
+    ImportTemplateDetail:
+      $ref: './components/schemas.yaml#/schemas/ImportTemplateDetail'
+    ImportTemplateListResponse:
+      $ref: './components/schemas.yaml#/schemas/ImportTemplateListResponse'
+  securitySchemes:
+    OAuth2:
+      $ref: './components/security.yaml#/securitySchemes/OAuth2'
+    ImogiSession:
+      $ref: './components/security.yaml#/securitySchemes/ImogiSession'

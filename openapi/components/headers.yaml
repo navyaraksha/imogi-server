@@ -1,0 +1,6 @@
+headers:
+  Location:
+    description: URL of the newly created resource.
+    schema:
+      type: string
+      format: uri-reference

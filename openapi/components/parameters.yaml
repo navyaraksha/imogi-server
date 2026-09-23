@@ -1,0 +1,161 @@
+parameters:
+  TenantSelector:
+    name: X-Imogi-Tenant-ID
+    in: header
+    required: false
+    description: |
+      Optional active-tenant selector for users with access to multiple tenants.
+      This value is validated against the authenticated user's server-side
+      membership and is never sufficient to authorize access by itself.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/TenantId'
+  TenantId:
+    name: tenantId
+    in: path
+    required: true
+    description: Opaque SaaS tenant identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/TenantId'
+  CompanyId:
+    name: companyId
+    in: path
+    required: true
+    description: Opaque legal/payroll company identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/CompanyId'
+  CompanyIdQuery:
+    name: companyId
+    in: query
+    required: false
+    description: Restrict results to a company authorized for the active tenant.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/CompanyId'
+  PayrollCompanyIdQuery:
+    name: companyId
+    in: query
+    required: true
+    description: Company whose payroll periods are being queried.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/CompanyId'
+  LocationId:
+    name: locationId
+    in: path
+    required: true
+    description: Opaque location identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+  DepartmentId:
+    name: departmentId
+    in: path
+    required: true
+    description: Opaque department identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+  PositionId:
+    name: positionId
+    in: path
+    required: true
+    description: Opaque position identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+  GroupId:
+    name: groupId
+    in: path
+    required: true
+    description: Opaque group identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+  EmployeeId:
+    name: employeeId
+    in: path
+    required: true
+    description: Opaque employee identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/Id'
+  EmploymentId:
+    name: employmentId
+    in: path
+    required: true
+    description: Opaque employment identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/Id'
+  AssignmentId:
+    name: assignmentId
+    in: path
+    required: true
+    description: Opaque assignment identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/Id'
+  TaxProfileId:
+    name: taxProfileId
+    in: path
+    required: true
+    description: Opaque tax profile identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/Id'
+  PayrollPeriodId:
+    name: payrollPeriodId
+    in: path
+    required: true
+    description: Opaque payroll period identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/Id'
+  PayrollPeriodStatusQuery:
+    name: status
+    in: query
+    required: false
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/PayrollPeriodStatus'
+  PayrollYear:
+    name: year
+    in: query
+    required: false
+    schema:
+      type: integer
+      minimum: 2000
+      maximum: 9999
+  FileBatchId:
+    name: batchId
+    in: path
+    required: true
+    description: Opaque import batch identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/Id'
+  FileArtifactId:
+    name: artifactId
+    in: path
+    required: true
+    description: Opaque batch artifact identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/Id'
+  PlatformUserId:
+    name: userId
+    in: path
+    required: true
+    description: Opaque platform user identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/Id'
+  MembershipId:
+    name: membershipId
+    in: path
+    required: true
+    description: Opaque tenant membership identifier.
+    schema:
+      $ref: '../openapi.yaml#/components/schemas/Id'
+  Limit:
+    name: limit
+    in: query
+    description: Maximum number of records to return.
+    schema:
+      type: integer
+      format: int32
+      minimum: 1
+      maximum: 100
+      default: 20
+  Cursor:
+    name: cursor
+    in: query
+    description: Opaque cursor returned by a previous page.
+    schema:
+      type: string
+      minLength: 1

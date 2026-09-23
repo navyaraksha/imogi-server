@@ -1,0 +1,8 @@
+package: restapi
+output: internal/restapi/generated/openapi.gen.go
+generate:
+  models: true
+  chi-server: true
+  embedded-spec: true
+output-options:
+  skip-prune: true

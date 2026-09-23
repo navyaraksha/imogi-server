@@ -1,0 +1,271 @@
+paths:
+  /api/v1/import-batches:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    post:
+      tags: [Import Batches]
+      operationId: createImportBatch
+      security:
+        - OAuth2: [file:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_batch.create]
+      summary: Create an import batch and upload session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/CreateImportBatchRequest'
+      responses:
+        '201':
+          description: Import batch and upload session created.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportBatchUploadResponse'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '409':
+          $ref: '../openapi.yaml#/components/responses/Conflict'
+
+  /api/v1/import-batches/{batchId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FileBatchId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Import Batches]
+      operationId: getImportBatch
+      security:
+        - OAuth2: [file:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_batch.read]
+      summary: Get import batch status
+      responses:
+        '200':
+          description: Import batch status.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportBatchDetail'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+
+  /api/v1/import-batches/{batchId}/upload-complete:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FileBatchId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    post:
+      tags: [Import Batches]
+      operationId: completeImportBatchUpload
+      security:
+        - OAuth2: [file:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_batch.create]
+      summary: Complete upload and enqueue validation
+      responses:
+        '202':
+          description: Validation job accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportBatchJobResponse'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../openapi.yaml#/components/responses/Conflict'
+
+  /api/v1/import-batches/{batchId}/upload:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FileBatchId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    put:
+      tags: [Import Batches]
+      operationId: uploadImportBatchFile
+      security:
+        - OAuth2: [file:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_batch.create]
+      summary: Upload an import file through the API in local development
+      description: Use this endpoint when the configured storage adapter is filesystem. Production object storage should use the presigned upload session instead.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream: {}
+          text/csv: {}
+          application/json: {}
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
+          application/vnd.ms-excel: {}
+      responses:
+        '202':
+          description: Validation job accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportBatchJobResponse'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../openapi.yaml#/components/responses/Conflict'
+
+  /api/v1/import-batches/{batchId}/commit:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FileBatchId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    post:
+      tags: [Import Batches]
+      operationId: commitImportBatch
+      security:
+        - OAuth2: [file:commit]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_batch.commit]
+      summary: Commit a validated import batch
+      responses:
+        '202':
+          description: Commit job accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportBatchJobResponse'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../openapi.yaml#/components/responses/Conflict'
+
+  /api/v1/import-batches/{batchId}/cancel:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FileBatchId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    post:
+      tags: [Import Batches]
+      operationId: cancelImportBatch
+      security:
+        - OAuth2: [file:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_batch.cancel]
+      summary: Request cooperative cancellation
+      responses:
+        '202':
+          description: Cancellation requested.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportBatchDetail'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+
+  /api/v1/import-batches/{batchId}/artifacts:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FileBatchId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Import Batches]
+      operationId: listImportBatchArtifacts
+      security:
+        - OAuth2: [file:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_artifact.read]
+      summary: List batch artifacts
+      responses:
+        '200':
+          description: Batch artifacts.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportBatchArtifactListResponse'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+
+  /api/v1/import-batches/{batchId}/artifacts/{artifactId}/download-url:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FileBatchId'
+      - $ref: '../openapi.yaml#/components/parameters/FileArtifactId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Import Batches]
+      operationId: getImportBatchArtifactDownloadURL
+      security:
+        - OAuth2: [file:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_artifact.read]
+      summary: Get a short-lived artifact download URL
+      responses:
+        '200':
+          description: Signed artifact URL.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ArtifactDownloadURLResponse'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+
+  /api/v1/import-templates:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Import Templates]
+      operationId: listImportTemplates
+      security:
+        - OAuth2: [file:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_template.read]
+      summary: List available import templates
+      responses:
+        '200':
+          description: Import templates.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportTemplateListResponse'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'

@@ -1,0 +1,31 @@
+responses:
+  Unauthorized:
+    description: Authentication is missing, invalid, or expired.
+    content:
+      application/json:
+        schema:
+          $ref: '../openapi.yaml#/components/schemas/ErrorResponse'
+  Forbidden:
+    description: The authenticated principal lacks the required scope or company access.
+    content:
+      application/json:
+        schema:
+          $ref: '../openapi.yaml#/components/schemas/ErrorResponse'
+  InvalidRequest:
+    description: Request is malformed or fails transport-level validation.
+    content:
+      application/json:
+        schema:
+          $ref: '../openapi.yaml#/components/schemas/ErrorResponse'
+  NotFound:
+    description: Requested resource does not exist.
+    content:
+      application/json:
+        schema:
+          $ref: '../openapi.yaml#/components/schemas/ErrorResponse'
+  Conflict:
+    description: Request conflicts with an existing resource or lifecycle state.
+    content:
+      application/json:
+        schema:
+          $ref: '../openapi.yaml#/components/schemas/ErrorResponse'

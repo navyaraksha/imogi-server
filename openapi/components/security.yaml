@@ -1,0 +1,19 @@
+securitySchemes:
+  OAuth2:
+    type: openIdConnect
+    openIdConnectUrl: https://accounts.google.com/.well-known/openid-configuration
+    description: |
+      Google OpenID Connect identity token sent as a Bearer token.
+      The server validates the token audience, issuer, subject, email, and
+      email_verified claim before resolving server-side platform and tenant
+      membership. The client-selected tenant header is only a selector; it is
+      never an authorization mechanism. Internal scope names in operations are
+      enforced together with server-side capabilities and company access.
+  ImogiSession:
+    type: apiKey
+    in: cookie
+    name: imogi_session
+    description: |
+      HttpOnly, server-issued Imogi session cookie. The session is resolved
+      server-side to the same principal, scopes, capabilities, tenant access,
+      and company access as the Google bearer-token flow.

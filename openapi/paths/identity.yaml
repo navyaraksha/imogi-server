@@ -1,0 +1,371 @@
+paths:
+  /api/v1/platform/users:
+    get:
+      tags: [Platform Users]
+      operationId: listPlatformUsers
+      security:
+        - OAuth2: [platform:user:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.user.read]
+      summary: List platform users
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+        - name: search
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 320
+        - name: status
+          in: query
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/PlatformUserStatus'
+      responses:
+        '200':
+          description: Platform user page.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/PlatformUserListResponse'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+    post:
+      tags: [Platform Users]
+      operationId: createPlatformUser
+      security:
+        - OAuth2: [platform:user:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.user.create]
+      summary: Pre-register a platform user
+      description: The user becomes active and links to Google on first verified login.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/CreatePlatformUserRequest'
+      responses:
+        '201':
+          description: Platform user pre-registered.
+          headers:
+            Location: { $ref: '../openapi.yaml#/components/headers/Location' }
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/PlatformUserDetail'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/platform/users/{userId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/PlatformUserId'
+    get:
+      tags: [Platform Users]
+      operationId: getPlatformUser
+      security:
+        - OAuth2: [platform:user:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.user.read]
+      summary: Get a platform user
+      responses:
+        '200':
+          description: Platform user detail.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/PlatformUserDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
+  /api/v1/platform/users/{userId}/block:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/PlatformUserId'
+    post:
+      tags: [Platform Users]
+      operationId: blockPlatformUser
+      security:
+        - OAuth2: [platform:user:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.user.block]
+      summary: Block a platform user
+      responses:
+        '200':
+          description: Platform user blocked.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/PlatformUserDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/platform/tenants/{tenantId}/memberships:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantId'
+    get:
+      tags: [Tenant Memberships]
+      operationId: listPlatformTenantMemberships
+      security:
+        - OAuth2: [platform:membership:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.membership.read]
+      summary: List memberships for a tenant
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Tenant membership page.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantMembershipListResponse'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+    post:
+      tags: [Tenant Memberships]
+      operationId: createPlatformTenantMembership
+      security:
+        - OAuth2: [platform:membership:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.membership.write]
+      summary: Provision a tenant membership
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/CreateTenantMembershipRequest'
+      responses:
+        '201':
+          description: Membership provisioned.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantMembershipDetail'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/platform/tenants/{tenantId}/memberships/{membershipId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantId'
+      - $ref: '../openapi.yaml#/components/parameters/MembershipId'
+    patch:
+      tags: [Tenant Memberships]
+      operationId: updatePlatformTenantMembership
+      security:
+        - OAuth2: [platform:membership:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.membership.write]
+      summary: Change a tenant membership role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/UpdateTenantMembershipRequest'
+      responses:
+        '200':
+          description: Membership updated.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantMembershipDetail'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+    
+  /api/v1/platform/tenants/{tenantId}/memberships/{membershipId}/revoke:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantId'
+      - $ref: '../openapi.yaml#/components/parameters/MembershipId'
+    post:
+      tags: [Tenant Memberships]
+      operationId: revokePlatformTenantMembership
+      security:
+        - OAuth2: [platform:membership:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.membership.write]
+      summary: Revoke a tenant membership
+      responses:
+        '200':
+          description: Membership revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantMembershipDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
+  /api/v1/platform/tenants/{tenantId}/memberships/{membershipId}/reactivate:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantId'
+      - $ref: '../openapi.yaml#/components/parameters/MembershipId'
+    post:
+      tags: [Tenant Memberships]
+      operationId: reactivatePlatformTenantMembership
+      security:
+        - OAuth2: [platform:membership:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [platform.membership.write]
+      summary: Reactivate a tenant membership
+      responses:
+        '200':
+          description: Membership reactivated.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantMembershipDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
+  /api/v1/tenant/memberships:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Tenant Memberships]
+      operationId: listTenantMemberships
+      security:
+        - OAuth2: [membership:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [membership.read]
+      summary: List memberships in the active tenant
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/Limit'
+        - $ref: '../openapi.yaml#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Tenant membership page.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantMembershipListResponse'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+    post:
+      tags: [Tenant Memberships]
+      operationId: createTenantMembership
+      security:
+        - OAuth2: [membership:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [membership.write]
+      summary: Provision a membership in the active tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/CreateTenantMembershipRequest'
+      responses:
+        '201':
+          description: Membership provisioned.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantMembershipDetail'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '../openapi.yaml#/components/responses/Conflict' }
+
+  /api/v1/tenant/memberships/{membershipId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/MembershipId'
+    patch:
+      tags: [Tenant Memberships]
+      operationId: updateTenantMembership
+      security:
+        - OAuth2: [membership:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [membership.write]
+      summary: Change a membership role in the active tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/UpdateTenantMembershipRequest'
+      responses:
+        '200':
+          description: Membership updated.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantMembershipDetail'
+        '400': { $ref: '../openapi.yaml#/components/responses/InvalidRequest' }
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
+  /api/v1/tenant/memberships/{membershipId}/revoke:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/MembershipId'
+    post:
+      tags: [Tenant Memberships]
+      operationId: revokeTenantMembership
+      security:
+        - OAuth2: [membership:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [membership.write]
+      summary: Revoke a membership in the active tenant
+      responses:
+        '200':
+          description: Membership revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantMembershipDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
+
+  /api/v1/tenant/memberships/{membershipId}/reactivate:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/MembershipId'
+    post:
+      tags: [Tenant Memberships]
+      operationId: reactivateTenantMembership
+      security:
+        - OAuth2: [membership:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [membership.write]
+      summary: Reactivate a membership in the active tenant
+      responses:
+        '200':
+          description: Membership reactivated.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/TenantMembershipDetail'
+        '401': { $ref: '../openapi.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '../openapi.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '../openapi.yaml#/components/responses/NotFound' }
