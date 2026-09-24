@@ -101,6 +101,8 @@ func (s *Service) ListPayrollPeriods(ctx context.Context, filter PeriodFilter) (
 }
 
 func (s *Service) RecordPayrollResult(ctx context.Context, input CreatePayrollResultInput) (domain.PayrollHistoryEntry, error) {
+	// Results are accepted only for an employment that covers the entire payroll
+	// month, preventing payroll data from being recorded outside employment.
 	if err := s.authorizer.Require(ctx, security.CapabilityPayrollResultWrite); err != nil {
 		return domain.PayrollHistoryEntry{}, err
 	}
@@ -175,6 +177,8 @@ func (s *Service) RecordPayrollResult(ctx context.Context, input CreatePayrollRe
 }
 
 func (s *Service) FinalizePayrollPeriod(ctx context.Context, id domain.PayrollPeriodID) (domain.PayrollPeriod, error) {
+	// Finalization freezes the period and its results as an auditable payroll
+	// snapshot; subsequent writes must be rejected by the application boundary.
 	if err := s.authorizer.Require(ctx, security.CapabilityPayrollFinalize); err != nil {
 		return domain.PayrollPeriod{}, err
 	}

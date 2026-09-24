@@ -165,6 +165,8 @@ func (s *ProvisioningService) CreateTenantMembership(ctx context.Context, input 
 }
 
 func (s *ProvisioningService) provisionMembership(ctx context.Context, input CreateMembershipInput) (Membership, error) {
+	// Membership creation is scoped to the active tenant and uses a fixed role
+	// allowlist so callers cannot grant arbitrary capabilities.
 	if !validMembershipRole(input.RoleCode) {
 		return Membership{}, ErrInvalidMembershipRole
 	}
@@ -243,6 +245,8 @@ func (s *ProvisioningService) ReactivateTenantMembership(ctx context.Context, me
 }
 
 func (s *ProvisioningService) changeMembershipStatus(ctx context.Context, tenantID, membershipID uuid.UUID, reactivate bool) (Membership, error) {
+	// Platform and tenant APIs share this transition path, but both must resolve
+	// the membership inside the caller's authorized tenant scope.
 	current, err := s.repository.GetTenantMembership(ctx, membershipID)
 	if err != nil {
 		return Membership{}, err

@@ -87,6 +87,8 @@ func (e *Employment) BindTenant(tenantID organization.TenantID) error {
 }
 
 func (e Employment) Status(asOf time.Time) EmploymentStatus {
+	// Status is derived from the employment dates so historical views remain
+	// stable when the current date moves forward.
 	asOf = dateOnly(asOf)
 	if asOf.Before(e.JoinDate) {
 		return EmploymentScheduled

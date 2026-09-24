@@ -22,11 +22,21 @@ type Repository interface {
 	WithinTransaction(context.Context, func(Transaction) error) error
 }
 
+type EmployeeNumberHistoryRepository interface {
+	CreateEmployeeNumberHistory(context.Context, domain.EmployeeNumberHistory) (domain.EmployeeNumberHistory, error)
+	CloseOpenEmployeeNumberHistory(context.Context, domain.EmployeeID, time.Time, time.Time) error
+	UpdateEmployeeNumberProjection(context.Context, domain.EmployeeID, *string, string) error
+	ListEmployeeNumberHistory(context.Context, domain.EmployeeID) ([]domain.EmployeeNumberHistory, error)
+}
+
 type Transaction interface {
 	CreateEmployee(context.Context, domain.Employee) (domain.Employee, error)
 	GetEmployee(context.Context, domain.EmployeeID) (domain.Employee, error)
 	ListEmployeeSummaries(context.Context, EmployeeListFilter) ([]domain.EmployeeSummary, error)
 	UpdateEmployee(context.Context, domain.Employee) (domain.Employee, error)
+	CreateEmployeeNumberHistory(context.Context, domain.EmployeeNumberHistory) (domain.EmployeeNumberHistory, error)
+	CloseOpenEmployeeNumberHistory(context.Context, domain.EmployeeID, time.Time, time.Time) error
+	UpdateEmployeeNumberProjection(context.Context, domain.EmployeeID, *string, string) error
 
 	CreateEmployment(context.Context, domain.Employment) (domain.Employment, error)
 	GetEmployment(context.Context, domain.EmploymentID) (domain.Employment, error)

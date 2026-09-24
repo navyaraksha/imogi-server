@@ -21,6 +21,8 @@ type RequestAuthenticator interface {
 }
 
 func Middleware(authenticator Authenticator) func(http.Handler) http.Handler {
+	// Tenant selection is validated before authentication and then carried in
+	// trusted context; downstream handlers never trust a raw client header.
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()

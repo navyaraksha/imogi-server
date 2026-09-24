@@ -1,0 +1,101 @@
+{
+  "sheetName": "DKM Rekap",
+  "layout": "repeated_blocks",
+  "dataStartRow": 16,
+  "regions": [
+    {
+      "name": "dkm",
+      "employeeNumberColumn": "D",
+      "fullNameColumn": "C",
+      "takeHomeColumn": "O",
+      "ignoreRows": [{"employeeNumber": "NF-00", "fullName": "No Name"}],
+      "earnings": [
+        {"code": "GAJI", "type": "earning", "column": "G"},
+        {"code": "THR", "type": "earning", "column": "H"}
+      ],
+      "deductions": [
+        {"code": "MINGGU", "type": "deduction", "column": "I"},
+        {"code": "DENDA", "type": "deduction", "column": "J"},
+        {"code": "SARUNG_TANGAN", "type": "deduction", "column": "K"},
+        {"code": "SILEBAH", "type": "deduction", "column": "L"},
+        {"code": "BPJS", "type": "deduction", "column": "M"},
+        {"code": "KAS_BON", "type": "deduction", "column": "N"}
+      ]
+    },
+    {
+      "name": "agro",
+      "employeeNumberColumn": "S",
+      "fullNameColumn": "R",
+      "takeHomeColumn": "AD",
+      "ignoreRows": [{"employeeNumber": "NF-00", "fullName": "No Name"}],
+      "earnings": [
+        {"code": "GAJI", "type": "earning", "column": "V"},
+        {"code": "THR", "type": "earning", "column": "W"}
+      ],
+      "deductions": [
+        {"code": "MINGGU", "type": "deduction", "column": "X"},
+        {"code": "DENDA", "type": "deduction", "column": "Y"},
+        {"code": "SARUNG_TANGAN", "type": "deduction", "column": "Z"},
+        {"code": "SILEBAH", "type": "deduction", "column": "AA"},
+        {"code": "BPJS", "type": "deduction", "column": "AB"},
+        {"code": "KAS_BON", "type": "deduction", "column": "AC"}
+      ]
+    },
+    {
+      "name": "third_party",
+      "employeeNumberColumn": "AH",
+      "fullNameColumn": "AG",
+      "takeHomeColumn": "AS",
+      "ignoreRows": [{"employeeNumber": "NF-00", "fullName": "No Name"}],
+      "earnings": [
+        {"code": "GAJI", "type": "earning", "column": "AK"},
+        {"code": "THR", "type": "earning", "column": "AL"}
+      ],
+      "deductions": [
+        {"code": "MINGGU", "type": "deduction", "column": "AM"},
+        {"code": "DENDA", "type": "deduction", "column": "AN"},
+        {"code": "SARUNG_TANGAN", "type": "deduction", "column": "AO"},
+        {"code": "SILEBAH", "type": "deduction", "column": "AP"},
+        {"code": "BPJS", "type": "deduction", "column": "AQ"},
+        {"code": "KAS_BON", "type": "deduction", "column": "AR"}
+      ]
+    },
+    {
+      "name": "other",
+      "employeeNumberColumn": "AW",
+      "fullNameColumn": "AV",
+      "takeHomeColumn": "BH",
+      "ignoreRows": [{"employeeNumber": "NF-00", "fullName": "No Name"}],
+      "earnings": [
+        {"code": "GAJI", "type": "earning", "column": "AZ"},
+        {"code": "THR", "type": "earning", "column": "BA"}
+      ],
+      "deductions": [
+        {"code": "MINGGU", "type": "deduction", "column": "BB"},
+        {"code": "DENDA", "type": "deduction", "column": "BC"},
+        {"code": "SARUNG_TANGAN", "type": "deduction", "column": "BD"},
+        {"code": "SILEBAH", "type": "deduction", "column": "BE"},
+        {"code": "BPJS", "type": "deduction", "column": "BF"},
+        {"code": "KAS_BON", "type": "deduction", "column": "BG"}
+      ]
+    },
+    {
+      "name": "daily_and_piecework",
+      "employeeNumberColumn": "BL",
+      "fullNameColumn": "BK",
+      "takeHomeColumn": "BQ",
+      "ignoreRows": [{"employeeNumber": "NF-00", "fullName": "No Name"}],
+      "earnings": [
+        {"code": "BORONGAN", "type": "earning", "column": "BO"},
+        {"code": "HARIAN", "type": "earning", "column": "BP"},
+        {"code": "THR", "type": "earning", "column": "BR"}
+      ],
+      "deductions": [
+        {"code": "MINGGU", "type": "deduction", "column": "BS"},
+        {"code": "DENDA", "type": "deduction", "column": "BT"},
+        {"code": "SARUNG_TANGAN", "type": "deduction", "column": "BU"},
+        {"code": "SILEBAH", "type": "deduction", "column": "BV"}
+      ]
+    }
+  ]
+}

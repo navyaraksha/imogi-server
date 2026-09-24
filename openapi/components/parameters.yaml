@@ -1,4 +1,11 @@
 parameters:
+  ImportTemplateId:
+    name: templateId
+    in: path
+    required: true
+    description: Opaque versioned import template identifier.
+    schema:
+      $ref: './schemas.yaml#/schemas/Id'
   TenantSelector:
     name: X-Imogi-Tenant-ID
     in: header

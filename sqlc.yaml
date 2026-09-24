@@ -10,6 +10,12 @@ sql:
       - db/migrations/000005_identity_sessions.sql
       - db/migrations/000006_payroll_ledger.sql
       - db/migrations/000007_file_batches_and_jobs.sql
+      - db/migrations/000008_employee_number_history.sql
+      - db/migrations/000009_import_row_validation.sql
+      - db/migrations/000010_payroll_runs.sql
+      - db/migrations/000011_versioned_import_templates.sql
+      - db/migrations/000012_import_payroll_context_and_effects.sql
+      - db/migrations/000013_import_payroll_correction_reference.sql
     queries: db/queries
     gen:
       go:

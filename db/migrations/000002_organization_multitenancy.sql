@@ -202,8 +202,8 @@ ALTER TABLE employee.employees
     ALTER COLUMN tenant_id SET NOT NULL,
     ALTER COLUMN company_id SET NOT NULL;
 
-DROP INDEX employee.employees_employee_number_uq;
-DROP INDEX employee.employees_nik_lookup_hash_uq;
+DROP INDEX IF EXISTS employee.employees_employee_number_uq;
+DROP INDEX IF EXISTS employee.employees_nik_lookup_hash_uq;
 
 CREATE UNIQUE INDEX employees_company_employee_number_uq
     ON employee.employees (tenant_id, company_id, employee_number);

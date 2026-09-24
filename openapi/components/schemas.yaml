@@ -7,6 +7,31 @@ schemas:
     type: string
     enum: [uploading, uploaded, validating, validated, validation_failed, commit_requested, committing, completed, commit_failed, cancel_requested, canceled]
 
+  PayrollImportContext:
+    type: object
+    additionalProperties: false
+    required: [year, month, coverageFrom, coverageTo, runType]
+    properties:
+      year:
+        type: integer
+        minimum: 2000
+        maximum: 2200
+      month:
+        type: integer
+        minimum: 1
+        maximum: 12
+      coverageFrom:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+      coverageTo:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+      payDate:
+        $ref: '../openapi.yaml#/components/schemas/NullableDate'
+      runType:
+        type: string
+        enum: [regular, overtime, thr, bonus, correction, reversal]
+      correctionOfRunId:
+        $ref: '../openapi.yaml#/components/schemas/NullableId'
+
   ImportBatchDetail:
     type: object
     additionalProperties: false
@@ -56,6 +81,101 @@ schemas:
         $ref: '../openapi.yaml#/components/schemas/Timestamp'
       updatedAt:
         $ref: '../openapi.yaml#/components/schemas/Timestamp'
+      payrollContext:
+        $ref: '../openapi.yaml#/components/schemas/PayrollImportContext'
+      payrollPeriodId:
+        $ref: '../openapi.yaml#/components/schemas/NullableId'
+      payrollRunId:
+        $ref: '../openapi.yaml#/components/schemas/NullableId'
+
+  ImportBatchSheet:
+    type: object
+    additionalProperties: false
+    required: [name, totalRows, validRows, invalidRows, blockingRows]
+    properties:
+      name:
+        type: string
+      totalRows:
+        type: integer
+        format: int32
+        minimum: 0
+      validRows:
+        type: integer
+        format: int32
+        minimum: 0
+      invalidRows:
+        type: integer
+        format: int32
+        minimum: 0
+      blockingRows:
+        type: integer
+        format: int32
+        minimum: 0
+
+  ImportBatchSheetListResponse:
+    type: object
+    additionalProperties: false
+    required: [data]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/ImportBatchSheet'
+
+  ImportBatchValidationIssue:
+    type: object
+    additionalProperties: false
+    required: [id, rowId, sheetName, rowNo, errorCode, severity, description, candidateCount]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      rowId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      sheetName:
+        type: string
+      rowNo:
+        type: integer
+        format: int32
+        minimum: 1
+      fieldName:
+        type: [string, 'null']
+      errorCode:
+        type: string
+      severity:
+        type: string
+        enum: [warning, error]
+      description:
+        type: string
+      maskedValue:
+        type: [string, 'null']
+      candidateCount:
+        type: integer
+        format: int32
+        minimum: 0
+
+  ImportBatchValidationIssueListResponse:
+    type: object
+    additionalProperties: false
+    required: [data]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/ImportBatchValidationIssue'
+
+  ResolveImportRowRequest:
+    type: object
+    additionalProperties: false
+    required: [employeeId, reason]
+    properties:
+      employeeId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      employmentId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      reason:
+        type: string
+        minLength: 1
+        maxLength: 1000
 
   CreateImportBatchRequest:
     type: object
@@ -72,7 +192,7 @@ schemas:
         maxLength: 255
       extension:
         type: string
-        enum: [xlsx, xls, xlsm, csv, json]
+        enum: [xlsx, xls, xlsm, xlm, csv, json]
       contentType:
         type: string
         minLength: 1
@@ -83,6 +203,8 @@ schemas:
         minimum: 0
       templateId:
         $ref: '../openapi.yaml#/components/schemas/Id'
+      payrollContext:
+        $ref: '../openapi.yaml#/components/schemas/PayrollImportContext'
 
   UploadSession:
     type: object
@@ -135,7 +257,7 @@ schemas:
         $ref: '../openapi.yaml#/components/schemas/Id'
       role:
         type: string
-        enum: [input, validation_summary, validation_errors, normalized, import_receipt, output_xml, error_report]
+        enum: [input, validation_summary, validation_errors, normalized, ready_import, import_receipt, output_xml, error_report]
       filename:
         type: string
       extension:
@@ -185,6 +307,75 @@ schemas:
       status:
         type: string
         enum: [active, retired]
+      configuration:
+        $ref: '../openapi.yaml#/components/schemas/ImportTemplateConfiguration'
+
+  ImportTemplateConfiguration:
+    type: object
+    additionalProperties: false
+    required: [sheetName, headerRow, dataStartRow, columns]
+    properties:
+      sheetName:
+        type: string
+        minLength: 1
+      headerRow:
+        type: integer
+        minimum: 1
+      dataStartRow:
+        type: integer
+        minimum: 2
+      columns:
+        type: object
+        additionalProperties:
+          type: string
+      unitMappings:
+        type: object
+        description: Maps source placement labels to organization unit UUIDs.
+        additionalProperties:
+          type: object
+          additionalProperties:
+            $ref: '../openapi.yaml#/components/schemas/OrganizationUnitId'
+      defaultTaxMethod:
+        type: string
+        maxLength: 50
+        default: monthly
+      defaultEmploymentType:
+        type: string
+        enum: [permanent, non_permanent]
+        default: permanent
+      components:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [sourceColumn, componentCode, componentType]
+          properties:
+            sourceColumn: {type: string, minLength: 1}
+            componentCode: {type: string, minLength: 1, maxLength: 100}
+            componentType: {$ref: '../openapi.yaml#/components/schemas/PayrollComponentType'}
+      numberFormat:
+        type: string
+
+  CreateImportTemplateRequest:
+    type: object
+    additionalProperties: false
+    required: [companyId, templateType, version, fileFormat, configuration]
+    properties:
+      companyId:
+        $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      templateType:
+        type: string
+        minLength: 1
+        maxLength: 100
+      version:
+        type: string
+        minLength: 1
+        maxLength: 50
+      fileFormat:
+        type: string
+        enum: [xlsx, xls, xlsm, xlm, csv, json]
+      configuration:
+        $ref: '../openapi.yaml#/components/schemas/ImportTemplateConfiguration'
 
   ImportTemplateListResponse:
     type: object
@@ -391,6 +582,16 @@ schemas:
     description: Application-generated UUIDv7 identifier in canonical lowercase form.
     examples: ['01933b7e-5f6a-7b8c-9d0e-1f2a3b4c5d6e']
 
+  NullableId:
+    oneOf:
+      - $ref: '../openapi.yaml#/components/schemas/Id'
+      - type: 'null'
+
+  NullableCompanyId:
+    oneOf:
+      - $ref: '../openapi.yaml#/components/schemas/CompanyId'
+      - type: 'null'
+
   TenantId:
     allOf:
       - $ref: '../openapi.yaml#/components/schemas/Id'
@@ -442,10 +643,9 @@ schemas:
     examples: ['3174010101010001']
 
   EmployeeNumber:
-    type: string
-    minLength: 1
+    type: [string, 'null']
     maxLength: 100
-    description: Organization-issued employee number, unique within the employee's company.
+    description: Current employee number projection. It may be null while the number is being reconciled; effective-dated history is authoritative.
     examples: ['EMP-000123']
 
   FullName:
@@ -1029,10 +1229,48 @@ schemas:
       nik:
         $ref: '../openapi.yaml#/components/schemas/Nik'
 
+  EmployeeNumberHistoryDetail:
+    type: object
+    additionalProperties: false
+    required: [id, employeeId, employeeNumber, numberType, effectiveFrom, source, createdAt]
+    properties:
+      id:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      employeeId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      employmentId:
+        $ref: '../openapi.yaml#/components/schemas/Id'
+      employeeNumber:
+        type: string
+        minLength: 1
+        maxLength: 100
+      numberType:
+        type: string
+        enum: [temporary, permanent]
+      effectiveFrom:
+        $ref: '../openapi.yaml#/components/schemas/Date'
+      effectiveTo:
+        $ref: '../openapi.yaml#/components/schemas/NullableDate'
+      source:
+        type: string
+        enum: [manual, import, correction, migration]
+      createdAt:
+        $ref: '../openapi.yaml#/components/schemas/Timestamp'
+
+  EmployeeNumberHistoryListResponse:
+    type: object
+    additionalProperties: false
+    required: [data]
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '../openapi.yaml#/components/schemas/EmployeeNumberHistoryDetail'
+
   CreateEmployeeRequest:
     type: object
     additionalProperties: false
-    required: [companyId, employeeNumber, nik, fullName]
+    required: [companyId, nik, fullName]
     properties:
       companyId:
         $ref: '../openapi.yaml#/components/schemas/CompanyId'

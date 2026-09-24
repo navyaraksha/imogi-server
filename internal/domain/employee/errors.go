@@ -8,6 +8,7 @@ var (
 	ErrAssignmentNotFound          = errors.New("assignment not found")
 	ErrTaxProfileNotFound          = errors.New("tax profile not found")
 	ErrEmployeeNumberTaken         = errors.New("employee number already exists")
+	ErrEmployeeNumberOverlap       = errors.New("employee number history overlaps")
 	ErrNIKAlreadyRegistered        = errors.New("NIK already registered")
 	ErrActiveEmploymentExists      = errors.New("active employment already exists")
 	ErrEmploymentAlreadyEnded      = errors.New("employment has already ended")

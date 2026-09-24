@@ -58,6 +58,7 @@ const (
 	CapabilityFileBatchCancel         = "file_batch.cancel"
 	CapabilityFileArtifactRead        = "file_artifact.read"
 	CapabilityFileTemplateRead        = "file_template.read"
+	CapabilityFileTemplateWrite       = "file_template.write"
 	CapabilityBackgroundJobRead       = "background_job.read"
 	CapabilityMembershipRead          = "membership.read"
 	CapabilityMembershipWrite         = "membership.write"

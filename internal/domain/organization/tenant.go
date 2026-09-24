@@ -50,6 +50,8 @@ func (t *Tenant) UpdateName(name string, now time.Time) error {
 }
 
 func (t *Tenant) Transition(status TenantStatus, now time.Time) error {
+	// Archived tenants remain addressable for history and are never moved back
+	// into an active lifecycle state.
 	if t.Status == TenantArchived && status != TenantArchived {
 		return fmt.Errorf("archived tenant cannot be reactivated")
 	}

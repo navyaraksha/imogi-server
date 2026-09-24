@@ -48,6 +48,15 @@ func (r *fakeRepository) UpdateEmployee(_ context.Context, value domain.Employee
 	r.employees[value.ID] = value
 	return value, nil
 }
+func (r *fakeRepository) CreateEmployeeNumberHistory(context.Context, domain.EmployeeNumberHistory) (domain.EmployeeNumberHistory, error) {
+	return domain.EmployeeNumberHistory{}, nil
+}
+func (r *fakeRepository) CloseOpenEmployeeNumberHistory(context.Context, domain.EmployeeID, time.Time, time.Time) error {
+	return nil
+}
+func (r *fakeRepository) UpdateEmployeeNumberProjection(context.Context, domain.EmployeeID, *string, string) error {
+	return nil
+}
 func (r *fakeRepository) CreateEmployment(_ context.Context, value domain.Employment) (domain.Employment, error) {
 	r.employments[value.ID] = value
 	return value, nil

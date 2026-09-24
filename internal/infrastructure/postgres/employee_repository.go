@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	appemployee "github.com/navyaraksha/imogi/internal/application/employee"
+	appfilebatch "github.com/navyaraksha/imogi/internal/application/filebatch"
 	domain "github.com/navyaraksha/imogi/internal/domain/employee"
 	"github.com/navyaraksha/imogi/internal/domain/organization"
 	"github.com/navyaraksha/imogi/internal/infrastructure/postgres/sqlc"
@@ -36,6 +38,7 @@ type transactionRepository struct {
 }
 
 var _ appemployee.Repository = (*Repository)(nil)
+var _ appemployee.EmployeeNumberHistoryRepository = (*Repository)(nil)
 
 // NewRepository creates the employee repository. Sensitive identity values are
 // encrypted before they leave this adapter and decrypted only for authorized
@@ -78,6 +81,123 @@ func (r *Repository) WithinTransaction(ctx context.Context, fn func(appemployee.
 	return nil
 }
 
+// FindIdentityCandidates is used by file validation. It deliberately returns
+// only matching identity metadata; NIK and other protected fields never leave
+// the encrypted employee repository for this purpose.
+func (r *Repository) FindIdentityCandidates(ctx context.Context, tenantID, companyID uuid.UUID, nik, name, employeeNumber string) ([]appfilebatch.IdentityCandidate, error) {
+	var nikLookup []byte
+	if strings.TrimSpace(nik) != "" {
+		nikLookup = r.protector.LookupHash(nik)
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT e.id,
+		       e.full_name,
+		       COALESCE(number_match.employee_number, e.employee_number, ''),
+		       number_match.employment_id,
+		       ($3::bytea IS NOT NULL AND e.nik_lookup_hash = $3::bytea) AS nik_match,
+		       COALESCE(e.birth_place, ''), COALESCE(to_char(e.birth_date, 'YYYY-MM-DD'), ''),
+		       COALESCE(e.gender, ''), COALESCE(e.email, ''), COALESCE(e.phone, ''), COALESCE(e.address, '')
+		FROM employee.employees e
+		LEFT JOIN LATERAL (
+			SELECT h.employee_number, h.employment_id
+			FROM employee.employee_number_history h
+			WHERE h.tenant_id = e.tenant_id
+			  AND h.company_id = e.company_id
+			  AND h.employee_id = e.id
+			  AND $5 <> ''
+			  AND lower(regexp_replace(h.employee_number, '[^[:alnum:]]', '', 'g')) = $5
+			ORDER BY h.effective_from DESC, h.id DESC
+			LIMIT 1
+		) number_match
+		WHERE e.tenant_id = $1
+		  AND e.company_id = $2
+		  AND (
+			($3::bytea IS NOT NULL AND e.nik_lookup_hash = $3::bytea)
+			OR lower(regexp_replace(e.full_name, '[^[:alnum:]]', '', 'g')) = $4
+			OR number_match.employee_number IS NOT NULL
+			OR lower(regexp_replace(COALESCE(e.employee_number, ''), '[^[:alnum:]]', '', 'g')) = $5
+		  )
+		ORDER BY e.id
+	`, tenantID, companyID, nikLookup, normalizeIdentityLookup(name), normalizeIdentityLookup(employeeNumber))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	candidates := make([]appfilebatch.IdentityCandidate, 0)
+	for rows.Next() {
+		var candidate appfilebatch.IdentityCandidate
+		var birthPlace, birthDate, gender, email, phone, address string
+		if err := rows.Scan(&candidate.EmployeeID, &candidate.FullName, &candidate.EmployeeNumber, &candidate.EmploymentID, &candidate.NIKMatch, &birthPlace, &birthDate, &gender, &email, &phone, &address); err != nil {
+			return nil, err
+		}
+		candidate.PersonalFields = map[string]string{"birth_place": birthPlace, "birth_date": birthDate, "gender": gender, "email": email, "phone": phone, "address": address}
+		candidates = append(candidates, candidate)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return candidates, nil
+}
+
+func (r *Repository) CreateEmployeeNumberHistory(ctx context.Context, history domain.EmployeeNumberHistory) (domain.EmployeeNumberHistory, error) {
+	return r.repositoryOps.CreateEmployeeNumberHistory(ctx, history)
+}
+
+func (r *repositoryOps) CreateEmployeeNumberHistory(ctx context.Context, history domain.EmployeeNumberHistory) (domain.EmployeeNumberHistory, error) {
+	var employmentID *uuid.UUID
+	if history.EmploymentID != nil {
+		value := history.EmploymentID.UUID()
+		employmentID = &value
+	}
+	var supersedesID *uuid.UUID
+	if history.SupersedesID != nil {
+		value := history.SupersedesID.UUID()
+		supersedesID = &value
+	}
+	row, err := r.queries.CreateEmployeeNumberHistory(ctx, sqlc.CreateEmployeeNumberHistoryParams{
+		ID: history.ID.UUID(), TenantID: history.TenantID.UUID(), CompanyID: history.CompanyID.UUID(),
+		EmployeeID: history.EmployeeID.UUID(), EmploymentID: employmentID, EmployeeNumber: history.EmployeeNumber,
+		NumberType: string(history.NumberType), EffectiveFrom: toPGDate(&history.EffectiveFrom),
+		EffectiveTo: toPGDate(history.EffectiveTo), Source: string(history.Source), SourceBatchID: history.SourceBatchID,
+		SupersedesID: supersedesID, CorrectionReason: history.CorrectionReason, CreatedBy: history.CreatedBy,
+	})
+	if err != nil {
+		return domain.EmployeeNumberHistory{}, mapDatabaseError(err)
+	}
+	return mapEmployeeNumberHistory(row), nil
+}
+
+func (r *repositoryOps) CloseOpenEmployeeNumberHistory(ctx context.Context, employeeID domain.EmployeeID, effectiveFrom, effectiveTo time.Time) error {
+	return r.queries.CloseOpenEmployeeNumberHistory(ctx, sqlc.CloseOpenEmployeeNumberHistoryParams{EmployeeID: employeeID.UUID(), EffectiveFrom: toPGDate(&effectiveFrom), EffectiveTo: toPGDate(&effectiveTo)})
+}
+
+func (r *repositoryOps) UpdateEmployeeNumberProjection(ctx context.Context, employeeID domain.EmployeeID, number *string, status string) error {
+	_, err := r.queries.UpdateEmployeeNumberProjection(ctx, sqlc.UpdateEmployeeNumberProjectionParams{ID: employeeID.UUID(), EmployeeNumber: number, EmployeeNumberStatus: status})
+	return mapDatabaseError(err)
+}
+
+func (r *Repository) ListEmployeeNumberHistory(ctx context.Context, employeeID domain.EmployeeID) ([]domain.EmployeeNumberHistory, error) {
+	rows, err := r.queries.ListEmployeeNumberHistory(ctx, employeeID.UUID())
+	if err != nil {
+		return nil, mapDatabaseError(err)
+	}
+	result := make([]domain.EmployeeNumberHistory, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, mapEmployeeNumberHistory(row))
+	}
+	return result, nil
+}
+
+func normalizeIdentityLookup(value string) string {
+	var builder strings.Builder
+	for _, character := range strings.ToLower(strings.TrimSpace(value)) {
+		if (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') {
+			builder.WriteRune(character)
+		}
+	}
+	return builder.String()
+}
+
 func (r *repositoryOps) CreateEmployee(ctx context.Context, entity domain.Employee) (domain.Employee, error) {
 	nikCiphertext, err := r.protector.Encrypt(entity.NIK.String())
 	if err != nil {
@@ -101,7 +221,13 @@ func (r *repositoryOps) CreateEmployee(ctx context.Context, entity domain.Employ
 	if err != nil {
 		return domain.Employee{}, mapDatabaseError(err)
 	}
-	return r.mapEmployee(row)
+	return r.mapEmployee(employeeRecord{
+		ID: row.ID, EmployeeNumber: row.EmployeeNumber, NikCiphertext: row.NikCiphertext,
+		NikLookupHash: row.NikLookupHash, FullName: row.FullName, BirthPlace: row.BirthPlace,
+		BirthDate: row.BirthDate, Gender: row.Gender, Email: row.Email, Phone: row.Phone,
+		Address: row.Address, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+		TenantID: row.TenantID, CompanyID: row.CompanyID,
+	})
 }
 
 func (r *repositoryOps) GetEmployee(ctx context.Context, id domain.EmployeeID) (domain.Employee, error) {
@@ -112,7 +238,13 @@ func (r *repositoryOps) GetEmployee(ctx context.Context, id domain.EmployeeID) (
 	if err != nil {
 		return domain.Employee{}, mapDatabaseError(err)
 	}
-	return r.mapEmployee(row)
+	return r.mapEmployee(employeeRecord{
+		ID: row.ID, EmployeeNumber: row.EmployeeNumber, NikCiphertext: row.NikCiphertext,
+		NikLookupHash: row.NikLookupHash, FullName: row.FullName, BirthPlace: row.BirthPlace,
+		BirthDate: row.BirthDate, Gender: row.Gender, Email: row.Email, Phone: row.Phone,
+		Address: row.Address, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+		TenantID: row.TenantID, CompanyID: row.CompanyID,
+	})
 }
 
 func (r *repositoryOps) ListEmployeeSummaries(ctx context.Context, filter appemployee.EmployeeListFilter) ([]domain.EmployeeSummary, error) {
@@ -164,7 +296,13 @@ func (r *repositoryOps) UpdateEmployee(ctx context.Context, entity domain.Employ
 	if err != nil {
 		return domain.Employee{}, mapDatabaseError(err)
 	}
-	return r.mapEmployee(row)
+	return r.mapEmployee(employeeRecord{
+		ID: row.ID, EmployeeNumber: row.EmployeeNumber, NikCiphertext: row.NikCiphertext,
+		NikLookupHash: row.NikLookupHash, FullName: row.FullName, BirthPlace: row.BirthPlace,
+		BirthDate: row.BirthDate, Gender: row.Gender, Email: row.Email, Phone: row.Phone,
+		Address: row.Address, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+		TenantID: row.TenantID, CompanyID: row.CompanyID,
+	})
 }
 
 func (r *repositoryOps) CreateEmployment(ctx context.Context, entity domain.Employment) (domain.Employment, error) {
@@ -382,7 +520,25 @@ func (r *repositoryOps) CloseTaxProfile(ctx context.Context, entity domain.TaxPr
 	return r.mapTaxProfile(row)
 }
 
-func (r *repositoryOps) mapEmployee(row sqlc.EmployeeEmployee) (domain.Employee, error) {
+type employeeRecord struct {
+	ID             uuid.UUID
+	EmployeeNumber string
+	NikCiphertext  []byte
+	NikLookupHash  []byte
+	FullName       string
+	BirthPlace     *string
+	BirthDate      pgtype.Date
+	Gender         *string
+	Email          *string
+	Phone          *string
+	Address        *string
+	CreatedAt      pgtype.Timestamptz
+	UpdatedAt      pgtype.Timestamptz
+	TenantID       uuid.UUID
+	CompanyID      uuid.UUID
+}
+
+func (r *repositoryOps) mapEmployee(row employeeRecord) (domain.Employee, error) {
 	nik, err := r.protector.Decrypt(row.NikCiphertext)
 	if err != nil {
 		return domain.Employee{}, fmt.Errorf("decrypt employee NIK: %w", err)
@@ -455,6 +611,28 @@ func (r *repositoryOps) mapTaxProfile(row sqlc.TaxEmployeeTaxProfile) (domain.Ta
 	}, nil
 }
 
+func mapEmployeeNumberHistory(row sqlc.EmployeeEmployeeNumberHistory) domain.EmployeeNumberHistory {
+	var employmentID *domain.EmploymentID
+	if row.EmploymentID != nil {
+		value := domain.EmploymentID(*row.EmploymentID)
+		employmentID = &value
+	}
+	var supersedesID *domain.EmployeeNumberHistoryID
+	if row.SupersedesID != nil {
+		value := domain.EmployeeNumberHistoryID(*row.SupersedesID)
+		supersedesID = &value
+	}
+	return domain.EmployeeNumberHistory{
+		ID: domain.EmployeeNumberHistoryID(row.ID), TenantID: organization.TenantID(row.TenantID),
+		CompanyID: organization.CompanyID(row.CompanyID), EmployeeID: domain.EmployeeID(row.EmployeeID),
+		EmploymentID: employmentID, EmployeeNumber: row.EmployeeNumber,
+		NumberType: domain.EmployeeNumberType(row.NumberType), EffectiveFrom: dateValue(row.EffectiveFrom),
+		EffectiveTo: fromPGDatePtr(row.EffectiveTo), Source: domain.EmployeeNumberSource(row.Source),
+		SourceBatchID: row.SourceBatchID, SupersedesID: supersedesID, CorrectionReason: row.CorrectionReason,
+		CreatedBy: row.CreatedBy, CreatedAt: timestamp(row.CreatedAt),
+	}
+}
+
 func mapEmployment(row sqlc.EmployeeEmployment) domain.Employment {
 	return domain.Employment{
 		ID:                domain.EmploymentID(row.ID),
@@ -495,6 +673,8 @@ func mapDatabaseError(err error) error {
 		return domain.ErrEmployeeNumberTaken
 	case "employees_nik_lookup_hash_uq", "employees_company_nik_lookup_hash_uq":
 		return domain.ErrNIKAlreadyRegistered
+	case "employee_number_history_no_number_overlap", "employee_number_history_no_employee_overlap":
+		return domain.ErrEmployeeNumberOverlap
 	case "employments_one_open_per_employee_uq":
 		return domain.ErrActiveEmploymentExists
 	case "employments_no_overlapping_periods":

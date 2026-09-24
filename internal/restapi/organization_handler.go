@@ -45,6 +45,21 @@ type APIHandler struct {
 	*FileBatchHandler
 }
 
+// Template administration is intentionally introduced in the contract before
+// its application service. Explicit methods avoid an embedding ambiguity while
+// keeping the generated server compatible during the incremental rollout.
+func (h *APIHandler) CreateImportTemplate(w http.ResponseWriter, r *http.Request, params generated.CreateImportTemplateParams) {
+	h.FileBatchHandler.CreateImportTemplate(w, r, params)
+}
+
+func (h *APIHandler) GetImportTemplate(w http.ResponseWriter, r *http.Request, id generated.ImportTemplateId, params generated.GetImportTemplateParams) {
+	h.FileBatchHandler.GetImportTemplate(w, r, id, params)
+}
+
+func (h *APIHandler) RetireImportTemplate(w http.ResponseWriter, r *http.Request, id generated.ImportTemplateId, params generated.RetireImportTemplateParams) {
+	h.FileBatchHandler.RetireImportTemplate(w, r, id, params)
+}
+
 var _ generated.ServerInterface = (*APIHandler)(nil)
 
 func NewAPIHandler(employee *Handler, organization *OrganizationHandler, identity *IdentityHandler, auth *AuthHandler, payroll *PayrollHandler, fileBatch *FileBatchHandler) (*APIHandler, error) {

@@ -50,6 +50,7 @@ type Repository interface {
 	WithinTransaction(context.Context, func(Transaction) error) error
 
 	CreatePayrollPeriod(context.Context, domain.PayrollPeriod) (domain.PayrollPeriod, error)
+	GetPayrollPeriodByScope(context.Context, organization.TenantID, organization.CompanyID, int, int) (domain.PayrollPeriod, error)
 	GetPayrollPeriod(context.Context, domain.PayrollPeriodID) (domain.PayrollPeriod, error)
 	ListPayrollPeriods(context.Context, PeriodFilter) ([]domain.PayrollPeriod, error)
 	GetEmploymentPayrollReference(context.Context, employee.EmploymentID) (domain.EmploymentReference, error)
@@ -60,6 +61,8 @@ type Repository interface {
 type Transaction interface {
 	GetPayrollPeriodForUpdate(context.Context, domain.PayrollPeriodID) (domain.PayrollPeriod, error)
 	CreatePayrollResult(context.Context, domain.PayrollResult) (domain.PayrollResult, error)
+	CreatePayrollRun(context.Context, domain.PayrollRun) (domain.PayrollRun, error)
+	NextPayrollRunSequence(context.Context, domain.PayrollPeriodID, domain.RunType, organization.TenantID, organization.CompanyID) (int, error)
 	CreatePayrollResultItem(context.Context, domain.PayrollResultItem) (domain.PayrollResultItem, error)
 	CountPayrollResults(context.Context, domain.PayrollPeriodID) (int64, error)
 	FinalizePayrollResults(context.Context, domain.PayrollPeriodID, time.Time) error

@@ -68,6 +68,14 @@ func (r *payrollTestRepository) GetPayrollPeriod(_ context.Context, id domain.Pa
 	}
 	return value, nil
 }
+func (r *payrollTestRepository) GetPayrollPeriodByScope(_ context.Context, tenantID organization.TenantID, companyID organization.CompanyID, year, month int) (domain.PayrollPeriod, error) {
+	for _, period := range r.periods {
+		if period.TenantID == tenantID && period.CompanyID == companyID && period.Year == year && period.Month == month {
+			return period, nil
+		}
+	}
+	return domain.PayrollPeriod{}, domain.ErrPayrollPeriodNotFound
+}
 func (r *payrollTestRepository) ListPayrollPeriods(context.Context, PeriodFilter) ([]domain.PayrollPeriod, error) {
 	return nil, nil
 }
@@ -86,6 +94,12 @@ func (r *payrollTestRepository) GetPayrollPeriodForUpdate(ctx context.Context, i
 func (r *payrollTestRepository) CreatePayrollResult(_ context.Context, value domain.PayrollResult) (domain.PayrollResult, error) {
 	r.results[value.ID] = value
 	return value, nil
+}
+func (r *payrollTestRepository) CreatePayrollRun(_ context.Context, value domain.PayrollRun) (domain.PayrollRun, error) {
+	return value, nil
+}
+func (r *payrollTestRepository) NextPayrollRunSequence(context.Context, domain.PayrollPeriodID, domain.RunType, organization.TenantID, organization.CompanyID) (int, error) {
+	return 1, nil
 }
 func (r *payrollTestRepository) CreatePayrollResultItem(_ context.Context, value domain.PayrollResultItem) (domain.PayrollResultItem, error) {
 	r.items[value.ID] = value

@@ -52,3 +52,26 @@ func TestLoadRejectsInvalidEncryptionKeyLength(t *testing.T) {
 		t.Fatal("invalid encryption key length was accepted")
 	}
 }
+
+func TestLoadUsesAWSObjectStorageEnvironment(t *testing.T) {
+	setValidEnvironment(t)
+	t.Setenv("OBJECT_STORAGE_DRIVER", "")
+	t.Setenv("OBJECT_STORAGE_ENDPOINT", "")
+	t.Setenv("OBJECT_STORAGE_BUCKET", "")
+	t.Setenv("OBJECT_STORAGE_ACCESS_KEY", "")
+	t.Setenv("OBJECT_STORAGE_SECRET_KEY", "")
+	t.Setenv("OBJECT_STORAGE_REGION", "")
+	t.Setenv("AWS_ENDPOINT_URL_S3", "https://s3.example.test")
+	t.Setenv("AWS_REGION", "ap-southeast-1")
+	t.Setenv("AWS_ACCESS_KEY_ID", "access-key")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "secret-key")
+	t.Setenv("AWS_S3_BUCKET", "imogi-test")
+
+	config, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.ObjectStorageDriver != "s3" || config.ObjectStorageEndpoint != "https://s3.example.test" || config.ObjectStorageRegion != "ap-southeast-1" || config.ObjectStorageBucket != "imogi-test" || !config.ObjectStorageSecure {
+		t.Fatalf("unexpected AWS object storage config: %+v", config)
+	}
+}

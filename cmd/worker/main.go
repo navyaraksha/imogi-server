@@ -85,7 +85,12 @@ func run(parent context.Context) error {
 	if err != nil {
 		return err
 	}
-	committer, err := appfilebatch.NewCommitter(fileRepository, employeeRepository, storage, parser, clock.System{})
+	validator.SetIdentityMatcher(employeeRepository)
+	payrollWriter, err := postgres.NewPayrollImportWriter(pool, clock.System{})
+	if err != nil {
+		return err
+	}
+	committer, err := appfilebatch.NewCommitter(fileRepository, employeeRepository, storage, parser, clock.System{}, payrollWriter)
 	if err != nil {
 		return err
 	}
@@ -96,6 +101,9 @@ func run(parent context.Context) error {
 		}
 	}
 	if err := registry.Register("employee_master.commit", committer); err != nil {
+		return err
+	}
+	if err := registry.Register("payroll_ledger.commit", committer); err != nil {
 		return err
 	}
 

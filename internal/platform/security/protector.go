@@ -40,6 +40,8 @@ func NewAESGCMProtector(encryptionKey, lookupKey []byte) (*AESGCMProtector, erro
 }
 
 func (p *AESGCMProtector) Encrypt(plaintext string) ([]byte, error) {
+	// A fresh nonce is required for every AES-GCM encryption to preserve the
+	// confidentiality guarantees of the cipher.
 	nonce := make([]byte, p.aead.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, fmt.Errorf("generate encryption nonce: %w", err)

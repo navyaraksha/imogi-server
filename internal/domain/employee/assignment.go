@@ -68,6 +68,8 @@ func (a *Assignment) Close(effectiveTo time.Time, now time.Time) error {
 }
 
 func (a Assignment) Status(asOf time.Time) AssignmentStatus {
+	// Effective dates, rather than a mutable status field, determine whether
+	// an assignment is scheduled, current, or historical.
 	asOf = dateOnly(asOf)
 	if asOf.Before(a.EffectiveFrom) {
 		return AssignmentScheduled

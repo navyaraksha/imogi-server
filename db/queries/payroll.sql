@@ -34,7 +34,7 @@ INSERT INTO payroll.payroll_results (
     employment_id,
     gross_income,
     taxable_income,
-    take_home_pay
+    take_home_pay, payroll_run_id, source_employee_number, source_sheet_name, source_row_no
 )
 VALUES (
     sqlc.arg('id'),
@@ -45,9 +45,44 @@ VALUES (
     sqlc.arg('employment_id'),
     sqlc.arg('gross_income'),
     sqlc.arg('taxable_income'),
-    sqlc.arg('take_home_pay')
+    sqlc.arg('take_home_pay'), sqlc.narg('payroll_run_id'), sqlc.narg('source_employee_number'),
+    sqlc.narg('source_sheet_name'), sqlc.narg('source_row_no')
 )
 RETURNING *;
+
+-- name: CreatePayrollRun :one
+INSERT INTO payroll.payroll_runs (
+    id, tenant_id, company_id, payroll_period_id, run_type, run_date,
+    coverage_from, coverage_to, pay_date, sequence_no, source_batch_id,
+    correction_of_run_id
+)
+VALUES (
+    sqlc.arg('id'), sqlc.arg('tenant_id'), sqlc.arg('company_id'), sqlc.arg('payroll_period_id'),
+    sqlc.arg('run_type'), sqlc.arg('run_date'), sqlc.arg('coverage_from'), sqlc.arg('coverage_to'),
+    sqlc.narg('pay_date'), sqlc.arg('sequence_no'), sqlc.narg('source_batch_id'), sqlc.narg('correction_of_run_id')
+)
+RETURNING *;
+
+-- name: GetPayrollRun :one
+SELECT * FROM payroll.payroll_runs WHERE id = sqlc.arg('id');
+
+-- name: GetPayrollPeriodByTenantCompanyMonth :one
+SELECT * FROM payroll.payroll_periods
+WHERE tenant_id = sqlc.arg('tenant_id') AND company_id = sqlc.arg('company_id')
+  AND year = sqlc.arg('year') AND month = sqlc.arg('month');
+
+-- name: NextPayrollRunSequence :one
+SELECT COALESCE(MAX(sequence_no), 0)::integer + 1 AS next_sequence
+FROM payroll.payroll_runs
+WHERE tenant_id = sqlc.arg('tenant_id') AND company_id = sqlc.arg('company_id')
+  AND payroll_period_id = sqlc.arg('payroll_period_id') AND run_type = sqlc.arg('run_type');
+
+-- name: GetEmploymentForPayrollCoverage :one
+SELECT id, employee_id, company_id, join_date, end_date
+FROM employee.employments
+WHERE id = sqlc.arg('id')
+  AND join_date <= sqlc.arg('coverage_to')
+  AND (end_date IS NULL OR end_date >= sqlc.arg('coverage_from'));
 
 -- name: CreatePayrollResultItem :one
 INSERT INTO payroll.payroll_result_items (id, payroll_result_id, component_code, component_type, amount)

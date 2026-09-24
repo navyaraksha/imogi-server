@@ -166,6 +166,9 @@ capabilities:
   file_template.read:
     requiredScopes: ['file:read']
     description: Read versioned import templates.
+  file_template.write:
+    requiredScopes: ['file:write']
+    description: Create or retire tenant-scoped import template versions.
   background_job.read:
     requiredScopes: ['file:read']
     description: Read operational state for background jobs.

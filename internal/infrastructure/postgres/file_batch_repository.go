@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -47,10 +48,24 @@ func (repository *FileBatchRepository) CreateBatch(ctx context.Context, file dom
 	if err != nil {
 		return domain.ImportBatch{}, err
 	}
+	if batch.PayrollContext != nil {
+		if _, err := queries.CreateImportBatchPayrollContext(ctx, payrollContextParams(batch.ID, batch.TenantID, batch.CompanyID, *batch.PayrollContext)); err != nil {
+			return domain.ImportBatch{}, err
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return domain.ImportBatch{}, fmt.Errorf("commit file batch transaction: %w", err)
 	}
 	return mapImportBatch(row), nil
+}
+
+func (repository *FileBatchRepository) SavePayrollContext(ctx context.Context, id domain.BatchID, value domain.PayrollImportContext) error {
+	batch, err := repository.GetBatch(ctx, id)
+	if err != nil {
+		return err
+	}
+	_, err = repository.queries.CreateImportBatchPayrollContext(ctx, payrollContextParams(batch.ID, batch.TenantID, batch.CompanyID, value))
+	return err
 }
 
 func (repository *FileBatchRepository) GetBatch(ctx context.Context, id domain.BatchID) (domain.ImportBatch, error) {
@@ -61,7 +76,15 @@ func (repository *FileBatchRepository) GetBatch(ctx context.Context, id domain.B
 	if err != nil {
 		return domain.ImportBatch{}, err
 	}
-	return mapImportBatch(row), nil
+	entity := mapImportBatch(row)
+	if entity.Operation == domain.OperationPayrollLedger {
+		contextRow, contextErr := repository.queries.GetImportBatchPayrollContext(ctx, id.UUID())
+		if contextErr != nil {
+			return domain.ImportBatch{}, contextErr
+		}
+		entity.PayrollContext = mapPayrollImportContext(contextRow)
+	}
+	return entity, nil
 }
 
 func (repository *FileBatchRepository) GetFileObject(ctx context.Context, id domain.FileObjectID) (domain.FileObject, error) {
@@ -75,22 +98,83 @@ func (repository *FileBatchRepository) GetFileObject(ctx context.Context, id dom
 	return mapFileObject(row), nil
 }
 
-func (repository *FileBatchRepository) ListTemplates(ctx context.Context) ([]domain.ImportTemplate, error) {
-	rows, err := repository.queries.ListImportTemplates(ctx)
+func (repository *FileBatchRepository) ListTemplates(ctx context.Context, tenantID uuid.UUID) ([]domain.ImportTemplate, error) {
+	rows, err := repository.queries.ListImportTemplates(ctx, uuidPtr(tenantID))
 	if err != nil {
 		return nil, err
 	}
 	templates := make([]domain.ImportTemplate, 0, len(rows))
 	for _, row := range rows {
+		var scopedTenantID *organization.TenantID
+		if row.TenantID != nil {
+			value := organization.TenantID(*row.TenantID)
+			scopedTenantID = &value
+		}
+		var scopedCompanyID *organization.CompanyID
+		if row.CompanyID != nil {
+			value := organization.CompanyID(*row.CompanyID)
+			scopedCompanyID = &value
+		}
 		templates = append(templates, domain.ImportTemplate{
-			ID:           domain.TemplateID(row.ID),
-			TemplateType: row.TemplateType,
-			Version:      row.Version,
-			FileFormat:   row.FileFormat,
-			Status:       row.Status,
+			ID: domain.TemplateID(row.ID), TenantID: scopedTenantID, CompanyID: scopedCompanyID,
+			TemplateType:  row.TemplateType,
+			Version:       row.Version,
+			FileFormat:    row.FileFormat,
+			Status:        row.Status,
+			Configuration: json.RawMessage(`{}`),
 		})
 	}
 	return templates, nil
+}
+
+func (repository *FileBatchRepository) GetTemplate(ctx context.Context, id domain.TemplateID) (domain.ImportTemplate, error) {
+	row, err := repository.queries.GetImportTemplate(ctx, id.UUID())
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.ImportTemplate{}, domain.ErrTemplateNotFound
+	}
+	if err != nil {
+		return domain.ImportTemplate{}, err
+	}
+	return domain.ImportTemplate{
+		ID: domain.TemplateID(row.ID), TenantID: mapTenantID(row.TenantID), CompanyID: mapCompanyID(row.CompanyID), TemplateType: row.TemplateType, Version: row.Version,
+		FileFormat: row.FileFormat, Status: row.Status, Configuration: append(json.RawMessage(nil), row.Configuration...),
+	}, nil
+}
+
+func (repository *FileBatchRepository) CreateTemplate(ctx context.Context, template domain.ImportTemplate) (domain.ImportTemplate, error) {
+	row, err := repository.queries.CreateImportTemplate(ctx, sqlc.CreateImportTemplateParams{ID: template.ID.UUID(), TenantID: scopedTenantUUID(template.TenantID), CompanyID: scopedCompanyUUID(template.CompanyID), TemplateType: template.TemplateType, Version: template.Version, FileFormat: template.FileFormat, Configuration: []byte(template.Configuration)})
+	if err != nil {
+		return domain.ImportTemplate{}, err
+	}
+	return mapImportTemplate(row), nil
+}
+
+func mapImportTemplate(row sqlc.FileImportTemplate) domain.ImportTemplate {
+	return domain.ImportTemplate{ID: domain.TemplateID(row.ID), TenantID: mapTenantID(row.TenantID), CompanyID: mapCompanyID(row.CompanyID), TemplateType: row.TemplateType, Version: row.Version, FileFormat: row.FileFormat, Status: row.Status, Configuration: append(json.RawMessage(nil), row.Configuration...)}
+}
+
+func scopedTenantUUID(value *organization.TenantID) *uuid.UUID {
+	if value == nil {
+		return nil
+	}
+	id := value.UUID()
+	return &id
+}
+
+func scopedCompanyUUID(value *organization.CompanyID) *uuid.UUID {
+	if value == nil {
+		return nil
+	}
+	id := value.UUID()
+	return &id
+}
+
+func (repository *FileBatchRepository) RetireTemplate(ctx context.Context, id domain.TemplateID) error {
+	_, err := repository.queries.RetireImportTemplate(ctx, id.UUID())
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.ErrTemplateNotApplicable
+	}
+	return err
 }
 
 func (repository *FileBatchRepository) CreateArtifactFile(ctx context.Context, file domain.FileObject, batchID domain.BatchID, artifactID domain.ArtifactID, role domain.ArtifactRole) error {
@@ -257,6 +341,138 @@ func (repository *FileBatchRepository) ListArtifacts(ctx context.Context, batchI
 	return artifacts, nil
 }
 
+func (repository *FileBatchRepository) ListValidationSheets(ctx context.Context, batchID domain.BatchID) ([]appfilebatch.ValidationSheet, error) {
+	rows, err := repository.queries.ListImportValidationSheets(ctx, batchID.UUID())
+	if err != nil {
+		return nil, err
+	}
+	result := make([]appfilebatch.ValidationSheet, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, appfilebatch.ValidationSheet{
+			Name: row.SheetName, TotalRows: int(row.TotalRows), ValidRows: int(row.ValidRows),
+			InvalidRows: int(row.InvalidRows), BlockingRows: int(row.BlockingRows),
+		})
+	}
+	return result, nil
+}
+
+func (repository *FileBatchRepository) ListValidationIssues(ctx context.Context, batchID domain.BatchID) ([]appfilebatch.ValidationIssueView, error) {
+	rows, err := repository.queries.ListImportValidationIssues(ctx, batchID.UUID())
+	if err != nil {
+		return nil, err
+	}
+	result := make([]appfilebatch.ValidationIssueView, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, appfilebatch.ValidationIssueView{
+			ID: domain.ImportRowIssueID(row.ID), RowID: domain.ImportRowID(row.RowID),
+			SheetName: row.SheetName, RowNumber: int(row.RowNo), FieldName: row.FieldName,
+			ErrorCode: row.ErrorCode, Severity: row.Severity, Description: row.Description,
+			MaskedValue: row.MaskedValue, CandidateCount: int(row.CandidateCount),
+		})
+	}
+	return result, nil
+}
+
+func (repository *FileBatchRepository) ResolveValidationRow(ctx context.Context, input appfilebatch.ResolveValidationRowInput) error {
+	tx, err := repository.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin validation resolution transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	queries := repository.queries.WithTx(tx)
+	if _, err := queries.ResolveImportBatchRow(ctx, sqlc.ResolveImportBatchRowParams{
+		BatchID: input.BatchID.UUID(), RowID: input.RowID.UUID(),
+		EmployeeID: input.EmployeeID, EmploymentID: input.EmploymentID,
+	}); err != nil {
+		return err
+	}
+	decisionID, err := domain.NewImportRowIssueID()
+	if err != nil {
+		return err
+	}
+	if _, err := queries.CreateImportRowDecision(ctx, sqlc.CreateImportRowDecisionParams{
+		ID: decisionID.UUID(), RowID: input.RowID.UUID(), EmployeeID: input.EmployeeID,
+		EmploymentID: input.EmploymentID, Decision: input.Decision, Reason: input.Reason,
+		DecidedBy: input.DecidedBy,
+	}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func (repository *FileBatchRepository) ClearValidationRows(ctx context.Context, batchID domain.BatchID) error {
+	return repository.queries.ClearImportBatchValidationRows(ctx, batchID.UUID())
+}
+
+func (repository *FileBatchRepository) CreateValidationRow(ctx context.Context, row appfilebatch.ValidationRow) error {
+	tx, err := repository.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin validation row transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	queries := repository.queries.WithTx(tx)
+	payload := row.NormalizedPayload
+	if len(payload) == 0 {
+		payload = json.RawMessage(`{}`)
+	}
+	if _, err := queries.CreateImportBatchRow(ctx, sqlc.CreateImportBatchRowParams{
+		ID: row.ID.UUID(), BatchID: row.BatchID.UUID(), SheetName: row.SheetName,
+		RowNo: int32(row.RowNumber), SourceEmployeeNumber: row.SourceEmployeeNumber,
+		SourceFullName: row.SourceFullName, MatchStatus: row.MatchStatus,
+		NormalizedPayload: []byte(payload), IssueCount: int32(row.IssueCount),
+		BlockingIssueCount: int32(row.BlockingIssueCount), EmployeeID: row.EmployeeID, EmploymentID: row.EmploymentID,
+	}); err != nil {
+		return err
+	}
+	for _, issue := range row.Issues {
+		details := issue.Details
+		if len(details) == 0 {
+			details = json.RawMessage(`{}`)
+		}
+		if _, err := queries.CreateImportRowIssue(ctx, sqlc.CreateImportRowIssueParams{
+			ID: issue.ID.UUID(), RowID: row.ID.UUID(), BatchID: row.BatchID.UUID(),
+			SheetName: row.SheetName, RowNo: int32(row.RowNumber), FieldName: issue.FieldName,
+			ErrorCode: issue.ErrorCode, Severity: issue.Severity, Description: issue.Description,
+			MaskedValue: issue.MaskedValue, CandidateCount: int32(issue.CandidateCount),
+			Details: []byte(details),
+		}); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+func (repository *FileBatchRepository) ListValidationRows(ctx context.Context, batchID domain.BatchID) ([]appfilebatch.ValidationRow, error) {
+	rows, err := repository.queries.ListImportBatchRows(ctx, batchID.UUID())
+	if err != nil {
+		return nil, err
+	}
+	result := make([]appfilebatch.ValidationRow, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, appfilebatch.ValidationRow{
+			ID: domain.ImportRowID(row.ID), BatchID: domain.BatchID(row.BatchID), SheetName: row.SheetName,
+			RowNumber: int(row.RowNo), SourceEmployeeNumber: row.SourceEmployeeNumber, SourceFullName: row.SourceFullName,
+			MatchStatus: row.MatchStatus, NormalizedPayload: append(json.RawMessage(nil), row.NormalizedPayload...),
+			IssueCount: int(row.IssueCount), BlockingIssueCount: int(row.BlockingIssueCount),
+			EmployeeID: row.EmployeeID, EmploymentID: row.EmploymentID,
+		})
+	}
+	return result, nil
+}
+
+func (repository *FileBatchRepository) CreateImportRowEffect(ctx context.Context, effect appfilebatch.ImportRowEffect) error {
+	_, err := repository.queries.CreateImportRowEffect(ctx, sqlc.CreateImportRowEffectParams{
+		ID: effect.ID.UUID(), BatchID: effect.BatchID.UUID(), RowID: effect.RowID.UUID(),
+		EntityType: effect.EntityType, EntityID: effect.EntityID, Action: effect.Action,
+	})
+	return err
+}
+
+func (repository *FileBatchRepository) LinkPayrollContext(ctx context.Context, batchID domain.BatchID, periodID, runID uuid.UUID) error {
+	_, err := repository.queries.LinkImportBatchPayrollContext(ctx, sqlc.LinkImportBatchPayrollContextParams{BatchID: batchID.UUID(), PayrollPeriodID: &periodID, PayrollRunID: &runID})
+	return err
+}
+
 func fileObjectParams(file domain.FileObject) sqlc.CreateFileObjectParams {
 	var createdBy *uuid.UUID
 	if file.CreatedBy.UUID() != uuid.Nil {
@@ -295,6 +511,14 @@ func importBatchParams(batch domain.ImportBatch) sqlc.CreateImportBatchParams {
 		TemplateID:  templateID,
 		CreatedBy:   batch.CreatedBy.UUID(),
 		ExpiresAt:   nullablePGTimestamp(batch.ExpiresAt),
+	}
+}
+
+func payrollContextParams(batchID domain.BatchID, tenantID organization.TenantID, companyID organization.CompanyID, value domain.PayrollImportContext) sqlc.CreateImportBatchPayrollContextParams {
+	return sqlc.CreateImportBatchPayrollContextParams{
+		BatchID: batchID.UUID(), TenantID: tenantID.UUID(), CompanyID: companyID.UUID(), TaxYear: int32(value.TaxYear), TaxMonth: int32(value.TaxMonth),
+		CoverageFrom: toPGDate(&value.CoverageFrom), CoverageTo: toPGDate(&value.CoverageTo), PayDate: toPGDate(value.PayDate), RunType: value.RunType,
+		CorrectionOfRunID: value.CorrectionOfRunID,
 	}
 }
 
@@ -385,5 +609,13 @@ func mapImportBatch(row sqlc.FileImportBatch) domain.ImportBatch {
 		ExpiresAt:            nullableTimestamp(row.ExpiresAt),
 		CreatedAt:            timestamp(row.CreatedAt),
 		UpdatedAt:            timestamp(row.UpdatedAt),
+	}
+}
+
+func mapPayrollImportContext(row sqlc.FileImportBatchPayrollContext) *domain.PayrollImportContext {
+	return &domain.PayrollImportContext{
+		TaxYear: int(row.TaxYear), TaxMonth: int(row.TaxMonth), CoverageFrom: dateValue(row.CoverageFrom), CoverageTo: dateValue(row.CoverageTo),
+		PayDate: fromPGDatePtr(row.PayDate), RunType: row.RunType, PayrollPeriodID: row.PayrollPeriodID, PayrollRunID: row.PayrollRunID,
+		CorrectionOfRunID: row.CorrectionOfRunID,
 	}
 }

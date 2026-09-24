@@ -61,6 +61,8 @@ func NewPayrollPeriod(
 }
 
 func (period PayrollPeriod) Finalize(at time.Time) (PayrollPeriod, error) {
+	// Finalization is intentionally one-way: finalized payroll periods are the
+	// audit boundary and must not be reopened by a later request.
 	if period.Status == PeriodFinalized {
 		return PayrollPeriod{}, ErrPayrollPeriodAlreadyFinalized
 	}
@@ -79,6 +81,8 @@ func (period PayrollPeriod) IsFinalized() bool {
 }
 
 func PeriodBounds(year, month int) (time.Time, time.Time, error) {
+	// Payroll months use inclusive calendar-day bounds in UTC, so employment
+	// coverage can be checked without time-of-day or local-time ambiguity.
 	if year < 2000 || year > 9999 || month < 1 || month > 12 {
 		return time.Time{}, time.Time{}, fmt.Errorf("%w: invalid year or month", ErrInvalidPayrollPeriod)
 	}

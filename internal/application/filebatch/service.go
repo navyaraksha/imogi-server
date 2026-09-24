@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	domain "github.com/navyaraksha/imogi/internal/domain/filebatch"
 	jobdomain "github.com/navyaraksha/imogi/internal/domain/job"
 	"github.com/navyaraksha/imogi/internal/domain/organization"
@@ -44,6 +46,7 @@ type CreateBatchInput struct {
 	ExpectedSize   int64
 	TemplateID     *domain.TemplateID
 	IdempotencyKey *string
+	PayrollContext *domain.PayrollImportContext
 }
 
 type CreateBatchResult struct {
@@ -53,6 +56,8 @@ type CreateBatchResult struct {
 }
 
 func (service *Service) CreateBatch(ctx context.Context, input CreateBatchInput) (CreateBatchResult, error) {
+	// The batch and its pending input file are created together so an upload
+	// session cannot exist without the import workflow that owns it.
 	if err := service.authorizer.Require(ctx, security.CapabilityFileBatchCreate); err != nil {
 		return CreateBatchResult{}, err
 	}
@@ -77,6 +82,15 @@ func (service *Service) CreateBatch(ctx context.Context, input CreateBatchInput)
 	}
 	if input.ExpectedSize < 0 || input.ExpectedSize > service.maxBytes {
 		return CreateBatchResult{}, fmt.Errorf("%w: declared file size must be between zero and %d bytes", domain.ErrInvalidFileObject, service.maxBytes)
+	}
+	if input.TemplateID != nil {
+		template, templateErr := service.repository.GetTemplate(ctx, *input.TemplateID)
+		if templateErr != nil {
+			return CreateBatchResult{}, templateErr
+		}
+		if templateErr := validateTemplateScope(template, tenantUUID, input.CompanyID.UUID(), extension); templateErr != nil {
+			return CreateBatchResult{}, templateErr
+		}
 	}
 	fileID, err := domain.NewFileObjectID()
 	if err != nil {
@@ -110,6 +124,15 @@ func (service *Service) CreateBatch(ctx context.Context, input CreateBatchInput)
 		return CreateBatchResult{}, err
 	}
 	batch.TemplateID = input.TemplateID
+	if input.Operation == domain.OperationPayrollLedger {
+		if input.PayrollContext == nil {
+			return CreateBatchResult{}, fmt.Errorf("%w: payroll context is required", domain.ErrInvalidBatch)
+		}
+		if err := input.PayrollContext.Validate(); err != nil {
+			return CreateBatchResult{}, err
+		}
+		batch.PayrollContext = input.PayrollContext
+	}
 	upload, err := service.storage.PrepareUpload(ctx, file.ObjectKey, file.DetectedMIMEType, service.presignTTL)
 	if err != nil {
 		return CreateBatchResult{}, err
@@ -261,7 +284,99 @@ func (service *Service) ListTemplates(ctx context.Context) ([]domain.ImportTempl
 	if err := service.authorizer.Require(ctx, security.CapabilityFileTemplateRead); err != nil {
 		return nil, err
 	}
-	return service.repository.ListTemplates(ctx)
+	tenantID, err := security.ActiveTenant(ctx, service.authorizer)
+	if err != nil {
+		return nil, err
+	}
+	return service.repository.ListTemplates(ctx, tenantID)
+}
+
+func (service *Service) GetTemplate(ctx context.Context, id domain.TemplateID) (domain.ImportTemplate, error) {
+	if err := service.authorizer.Require(ctx, security.CapabilityFileTemplateRead); err != nil {
+		return domain.ImportTemplate{}, err
+	}
+	tenantID, err := security.ActiveTenant(ctx, service.authorizer)
+	if err != nil {
+		return domain.ImportTemplate{}, err
+	}
+	template, err := service.repository.GetTemplate(ctx, id)
+	if err != nil {
+		return domain.ImportTemplate{}, err
+	}
+	if template.TenantID != nil && template.TenantID.UUID() != tenantID {
+		return domain.ImportTemplate{}, security.ErrForbidden
+	}
+	return template, nil
+}
+
+type CreateTemplateInput struct {
+	CompanyID     organization.CompanyID
+	TemplateType  string
+	Version       string
+	FileFormat    string
+	Configuration json.RawMessage
+}
+
+func (service *Service) CreateTemplate(ctx context.Context, input CreateTemplateInput) (domain.ImportTemplate, error) {
+	if err := service.authorizer.Require(ctx, security.CapabilityFileTemplateWrite); err != nil {
+		return domain.ImportTemplate{}, err
+	}
+	tenantUUID, err := security.ActiveTenant(ctx, service.authorizer)
+	if err != nil {
+		return domain.ImportTemplate{}, err
+	}
+	if err := service.authorizer.RequireCompany(ctx, input.CompanyID.UUID()); err != nil {
+		return domain.ImportTemplate{}, err
+	}
+	if len(input.Configuration) == 0 {
+		input.Configuration = json.RawMessage(`{}`)
+	}
+	var object map[string]any
+	if err := json.Unmarshal(input.Configuration, &object); err != nil || object == nil {
+		return domain.ImportTemplate{}, domain.ErrInvalidTemplate
+	}
+	id, err := domain.NewTemplateID()
+	if err != nil {
+		return domain.ImportTemplate{}, err
+	}
+	template := domain.ImportTemplate{ID: id, TenantID: tenantIDPtr(organization.TenantID(tenantUUID)), CompanyID: companyIDPtr(input.CompanyID), TemplateType: strings.TrimSpace(input.TemplateType), Version: strings.TrimSpace(input.Version), FileFormat: normalizeExtension(input.FileFormat), Status: "active", Configuration: input.Configuration}
+	if template.TemplateType == "" || template.Version == "" || !supportedExtension(template.FileFormat) {
+		return domain.ImportTemplate{}, domain.ErrInvalidTemplate
+	}
+	return service.repository.CreateTemplate(ctx, template)
+}
+
+func (service *Service) RetireTemplate(ctx context.Context, id domain.TemplateID) error {
+	if err := service.authorizer.Require(ctx, security.CapabilityFileTemplateWrite); err != nil {
+		return err
+	}
+	template, err := service.GetTemplate(ctx, id)
+	if err != nil {
+		return err
+	}
+	if template.Status != "active" {
+		return domain.ErrTemplateNotApplicable
+	}
+	return service.repository.RetireTemplate(ctx, id)
+}
+
+func tenantIDPtr(value organization.TenantID) *organization.TenantID    { return &value }
+func companyIDPtr(value organization.CompanyID) *organization.CompanyID { return &value }
+
+func validateTemplateScope(template domain.ImportTemplate, tenantID, companyID uuid.UUID, extension string) error {
+	if template.TenantID != nil && template.TenantID.UUID() != tenantID {
+		return security.ErrForbidden
+	}
+	if template.CompanyID != nil && template.CompanyID.UUID() != companyID {
+		return security.ErrForbidden
+	}
+	if template.FileFormat != extension {
+		return fmt.Errorf("%w: template requires %s, received %s", domain.ErrTemplateNotApplicable, template.FileFormat, extension)
+	}
+	if template.Status != "active" {
+		return domain.ErrTemplateNotApplicable
+	}
+	return nil
 }
 
 func (service *Service) RequestCancel(ctx context.Context, id domain.BatchID) (domain.ImportBatch, error) {
@@ -284,6 +399,43 @@ func (service *Service) ListArtifacts(ctx context.Context, id domain.BatchID) ([
 		return nil, err
 	}
 	return service.repository.ListArtifacts(ctx, id)
+}
+
+func (service *Service) ListValidationSheets(ctx context.Context, id domain.BatchID) ([]ValidationSheet, error) {
+	if _, err := service.GetBatch(ctx, id); err != nil {
+		return nil, err
+	}
+	return service.repository.ListValidationSheets(ctx, id)
+}
+
+func (service *Service) ListValidationIssues(ctx context.Context, id domain.BatchID) ([]ValidationIssueView, error) {
+	if _, err := service.GetBatch(ctx, id); err != nil {
+		return nil, err
+	}
+	return service.repository.ListValidationIssues(ctx, id)
+}
+
+func (service *Service) ResolveValidationRow(ctx context.Context, batchID domain.BatchID, rowID domain.ImportRowID, employeeID, employmentID *uuid.UUID, reason string) error {
+	if err := service.authorizer.Require(ctx, security.CapabilityFileBatchCommit); err != nil {
+		return err
+	}
+	if _, err := service.GetBatch(ctx, batchID); err != nil {
+		return err
+	}
+	if employeeID == nil {
+		return fmt.Errorf("%w: employee mapping is required", domain.ErrInvalidBatch)
+	}
+	if strings.TrimSpace(reason) == "" {
+		return fmt.Errorf("%w: resolution reason is required", domain.ErrInvalidBatch)
+	}
+	userID, err := security.CurrentUserID(ctx)
+	if err != nil {
+		return err
+	}
+	return service.repository.ResolveValidationRow(ctx, ResolveValidationRowInput{
+		BatchID: batchID, RowID: rowID, EmployeeID: employeeID, EmploymentID: employmentID,
+		Decision: "map", Reason: strings.TrimSpace(reason), DecidedBy: userID.UUID(),
+	})
 }
 
 func (service *Service) SignedArtifactURL(ctx context.Context, id domain.BatchID, artifactID domain.ArtifactID) (string, time.Time, error) {
@@ -322,7 +474,7 @@ func (service *Service) requireBatchAccess(ctx context.Context, batch domain.Imp
 
 func supportedExtension(extension string) bool {
 	switch extension {
-	case "xlsx", "xls", "xlsm", "csv", "json":
+	case "xlsx", "xls", "xlsm", "xlm", "csv", "json":
 		return true
 	default:
 		return false

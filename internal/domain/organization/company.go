@@ -48,6 +48,8 @@ func (c *Company) Update(code, legalName, displayName string, now time.Time) err
 }
 
 func (c *Company) Transition(status CompanyStatus, now time.Time) error {
+	// Archived companies are retained for historical payroll and employee data,
+	// so the lifecycle deliberately does not allow reactivation.
 	if c.Status == CompanyArchived && status != CompanyArchived {
 		return fmt.Errorf("archived company cannot be reactivated")
 	}

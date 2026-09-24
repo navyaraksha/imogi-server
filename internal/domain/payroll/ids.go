@@ -11,6 +11,7 @@ import (
 type PayrollPeriodID uuid.UUID
 type PayrollResultID uuid.UUID
 type PayrollResultItemID uuid.UUID
+type PayrollRunID uuid.UUID
 
 func newID() (uuid.UUID, error) {
 	return identitydomain.NewUUIDv7()
@@ -31,6 +32,11 @@ func NewPayrollResultItemID() (PayrollResultItemID, error) {
 	return PayrollResultItemID(id), err
 }
 
+func NewPayrollRunID() (PayrollRunID, error) {
+	id, err := newID()
+	return PayrollRunID(id), err
+}
+
 func ParsePayrollPeriodID(value string) (PayrollPeriodID, error) {
 	id, err := identitydomain.ParseUUIDv7(value)
 	if err != nil {
@@ -47,9 +53,19 @@ func ParsePayrollResultID(value string) (PayrollResultID, error) {
 	return PayrollResultID(id), nil
 }
 
+func ParsePayrollRunID(value string) (PayrollRunID, error) {
+	id, err := identitydomain.ParseUUIDv7(value)
+	if err != nil {
+		return PayrollRunID(uuid.Nil), fmt.Errorf("payroll run id: %w", err)
+	}
+	return PayrollRunID(id), nil
+}
+
 func (id PayrollPeriodID) UUID() uuid.UUID     { return uuid.UUID(id) }
 func (id PayrollResultID) UUID() uuid.UUID     { return uuid.UUID(id) }
 func (id PayrollResultItemID) UUID() uuid.UUID { return uuid.UUID(id) }
+func (id PayrollRunID) UUID() uuid.UUID        { return uuid.UUID(id) }
 func (id PayrollPeriodID) String() string      { return id.UUID().String() }
 func (id PayrollResultID) String() string      { return id.UUID().String() }
 func (id PayrollResultItemID) String() string  { return id.UUID().String() }
+func (id PayrollRunID) String() string         { return id.UUID().String() }

@@ -89,6 +89,7 @@ func New(
 }
 
 func (job Job) IsTerminal() bool {
+	// Terminal jobs must not be leased or retried again by a worker.
 	switch job.Status {
 	case StatusSucceeded, StatusFailed, StatusDeadLetter, StatusCanceled:
 		return true

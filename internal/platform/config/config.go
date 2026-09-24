@@ -95,7 +95,9 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	objectStorageSecure, err := boolEnv("OBJECT_STORAGE_SECURE", false)
+	objectStorageEndpoint := firstNonBlankEnv("OBJECT_STORAGE_ENDPOINT", "AWS_ENDPOINT_URL_S3")
+	objectStorageSecureDefault := strings.HasPrefix(strings.ToLower(objectStorageEndpoint), "https://")
+	objectStorageSecure, err := boolEnv("OBJECT_STORAGE_SECURE", objectStorageSecureDefault)
 	if err != nil {
 		return Config{}, err
 	}
@@ -136,6 +138,19 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	objectStorageDriver := strings.ToLower(strings.TrimSpace(os.Getenv("OBJECT_STORAGE_DRIVER")))
+	if objectStorageDriver == "" {
+		if objectStorageEndpoint != "" && firstNonBlankEnv("OBJECT_STORAGE_ACCESS_KEY", "AWS_ACCESS_KEY_ID") != "" && firstNonBlankEnv("OBJECT_STORAGE_SECRET_KEY", "AWS_SECRET_ACCESS_KEY") != "" {
+			objectStorageDriver = "s3"
+		} else {
+			objectStorageDriver = "filesystem"
+		}
+	}
+	objectStorageRegion := firstNonBlankEnv("OBJECT_STORAGE_REGION", "AWS_REGION", "AWS_DEFAULT_REGION")
+	if objectStorageRegion == "" {
+		objectStorageRegion = "us-east-1"
+	}
+
 	return Config{
 		HTTPAddr:                envOrDefault("HTTP_ADDR", ":8080"),
 		HTTPAllowedOrigins:      csvEnv("HTTP_ALLOWED_ORIGINS"),
@@ -150,12 +165,12 @@ func Load() (Config, error) {
 		BootstrapAdminEmails:    csvEnv("GOOGLE_BOOTSTRAP_PLATFORM_ADMIN_EMAILS"),
 		EncryptionKey:           encryptionKey,
 		LookupKey:               lookupKey,
-		ObjectStorageDriver:     envOrDefault("OBJECT_STORAGE_DRIVER", "filesystem"),
-		ObjectStorageEndpoint:   strings.TrimSpace(os.Getenv("OBJECT_STORAGE_ENDPOINT")),
-		ObjectStorageRegion:     envOrDefault("OBJECT_STORAGE_REGION", "us-east-1"),
-		ObjectStorageBucket:     strings.TrimSpace(os.Getenv("OBJECT_STORAGE_BUCKET")),
-		ObjectStorageAccessKey:  strings.TrimSpace(os.Getenv("OBJECT_STORAGE_ACCESS_KEY")),
-		ObjectStorageSecretKey:  strings.TrimSpace(os.Getenv("OBJECT_STORAGE_SECRET_KEY")),
+		ObjectStorageDriver:     objectStorageDriver,
+		ObjectStorageEndpoint:   objectStorageEndpoint,
+		ObjectStorageRegion:     objectStorageRegion,
+		ObjectStorageBucket:     firstNonBlankEnv("OBJECT_STORAGE_BUCKET", "AWS_S3_BUCKET", "S3_BUCKET"),
+		ObjectStorageAccessKey:  firstNonBlankEnv("OBJECT_STORAGE_ACCESS_KEY", "AWS_ACCESS_KEY_ID"),
+		ObjectStorageSecretKey:  firstNonBlankEnv("OBJECT_STORAGE_SECRET_KEY", "AWS_SECRET_ACCESS_KEY"),
 		ObjectStorageSecure:     objectStorageSecure,
 		ObjectStoragePresignTTL: objectStoragePresignTTL,
 		FileStorageRoot:         envOrDefault("FILE_STORAGE_ROOT", ".data/objects"),
@@ -219,6 +234,15 @@ func envOrDefault(name, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func firstNonBlankEnv(names ...string) string {
+	for _, name := range names {
+		if value := strings.TrimSpace(os.Getenv(name)); value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func durationEnv(name string, fallback time.Duration) (time.Duration, error) {

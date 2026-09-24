@@ -11,6 +11,7 @@ type EmployeeID uuid.UUID
 type EmploymentID uuid.UUID
 type AssignmentID uuid.UUID
 type TaxProfileID uuid.UUID
+type EmployeeNumberHistoryID uuid.UUID
 
 func newID() (uuid.UUID, error) { return identity.NewUUIDv7() }
 
@@ -32,6 +33,11 @@ func NewAssignmentID() (AssignmentID, error) {
 func NewTaxProfileID() (TaxProfileID, error) {
 	id, err := newID()
 	return TaxProfileID(id), err
+}
+
+func NewEmployeeNumberHistoryID() (EmployeeNumberHistoryID, error) {
+	id, err := newID()
+	return EmployeeNumberHistoryID(id), err
 }
 
 func ParseEmployeeID(value string) (EmployeeID, error) {
@@ -66,11 +72,13 @@ func ParseTaxProfileID(value string) (TaxProfileID, error) {
 	return TaxProfileID(id), nil
 }
 
-func (id EmployeeID) UUID() uuid.UUID   { return uuid.UUID(id) }
-func (id EmploymentID) UUID() uuid.UUID { return uuid.UUID(id) }
-func (id AssignmentID) UUID() uuid.UUID { return uuid.UUID(id) }
-func (id TaxProfileID) UUID() uuid.UUID { return uuid.UUID(id) }
-func (id EmployeeID) String() string    { return id.UUID().String() }
-func (id EmploymentID) String() string  { return id.UUID().String() }
-func (id AssignmentID) String() string  { return id.UUID().String() }
-func (id TaxProfileID) String() string  { return id.UUID().String() }
+func (id EmployeeID) UUID() uuid.UUID              { return uuid.UUID(id) }
+func (id EmploymentID) UUID() uuid.UUID            { return uuid.UUID(id) }
+func (id AssignmentID) UUID() uuid.UUID            { return uuid.UUID(id) }
+func (id TaxProfileID) UUID() uuid.UUID            { return uuid.UUID(id) }
+func (id EmployeeNumberHistoryID) UUID() uuid.UUID { return uuid.UUID(id) }
+func (id EmployeeID) String() string               { return id.UUID().String() }
+func (id EmploymentID) String() string             { return id.UUID().String() }
+func (id AssignmentID) String() string             { return id.UUID().String() }
+func (id TaxProfileID) String() string             { return id.UUID().String() }
+func (id EmployeeNumberHistoryID) String() string  { return id.UUID().String() }

@@ -21,18 +21,22 @@ const (
 )
 
 type PayrollResult struct {
-	ID              PayrollResultID
-	TenantID        organization.TenantID
-	CompanyID       organization.CompanyID
-	PayrollPeriodID PayrollPeriodID
-	EmployeeID      employee.EmployeeID
-	EmploymentID    employee.EmploymentID
-	GrossIncome     Money
-	TaxableIncome   Money
-	TakeHomePay     Money
-	FinalizedAt     *time.Time
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID                   PayrollResultID
+	TenantID             organization.TenantID
+	CompanyID            organization.CompanyID
+	PayrollPeriodID      PayrollPeriodID
+	EmployeeID           employee.EmployeeID
+	EmploymentID         employee.EmploymentID
+	GrossIncome          Money
+	TaxableIncome        Money
+	TakeHomePay          Money
+	FinalizedAt          *time.Time
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	PayrollRunID         *PayrollRunID
+	SourceEmployeeNumber *string
+	SourceSheetName      *string
+	SourceRowNo          *int
 }
 
 type PayrollResultItem struct {
@@ -140,6 +144,8 @@ func NewPayrollResultItem(
 }
 
 func (employment EmploymentReference) CoversPeriod(year, month int) bool {
+	// An employment covers a payroll month when it overlaps any day in that
+	// month; an open employment has no upper bound.
 	start, end, err := PeriodBounds(year, month)
 	if err != nil {
 		return false

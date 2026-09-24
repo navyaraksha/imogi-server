@@ -216,7 +216,99 @@ paths:
         '403':
           $ref: '../openapi.yaml#/components/responses/Forbidden'
         '404':
+            $ref: '../openapi.yaml#/components/responses/NotFound'
+
+  /api/v1/import-batches/{batchId}/sheets:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FileBatchId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Import Batches]
+      operationId: listImportBatchSheets
+      security:
+        - OAuth2: [file:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_batch.read]
+      summary: List workbook sheets and validation counts
+      responses:
+        '200':
+          description: Validation sheet summary.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportBatchSheetListResponse'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
           $ref: '../openapi.yaml#/components/responses/NotFound'
+
+  /api/v1/import-batches/{batchId}/issues:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FileBatchId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+    get:
+      tags: [Import Batches]
+      operationId: listImportBatchValidationIssues
+      security:
+        - OAuth2: [file:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_batch.read]
+      summary: List row-level validation issues
+      responses:
+        '200':
+          description: Validation issues with masked source values.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportBatchValidationIssueListResponse'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+
+  /api/v1/import-batches/{batchId}/rows/{rowId}/resolve:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/FileBatchId'
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - name: rowId
+        in: path
+        required: true
+        schema:
+          $ref: '../openapi.yaml#/components/schemas/Id'
+    post:
+      tags: [Import Batches]
+      operationId: resolveImportBatchRow
+      security:
+        - OAuth2: [file:commit]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_batch.commit]
+      summary: Resolve a row-level employee identity conflict
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/ResolveImportRowRequest'
+      responses:
+        '204':
+          description: Row resolution recorded.
+        '400':
+          $ref: '../openapi.yaml#/components/responses/InvalidRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../openapi.yaml#/components/responses/Conflict'
 
   /api/v1/import-batches/{batchId}/artifacts/{artifactId}/download-url:
     parameters:
@@ -269,3 +361,72 @@ paths:
           $ref: '../openapi.yaml#/components/responses/Unauthorized'
         '403':
           $ref: '../openapi.yaml#/components/responses/Forbidden'
+    post:
+      tags: [Import Templates]
+      operationId: createImportTemplate
+      security:
+        - OAuth2: [file:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_template.write]
+      summary: Create an immutable versioned import template
+      description: Template versions are immutable. A changed mapping must use a new version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/CreateImportTemplateRequest'
+      responses:
+        '201':
+          description: Import template created.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ImportTemplateDetail'
+        '400': {$ref: '../openapi.yaml#/components/responses/InvalidRequest'}
+        '401': {$ref: '../openapi.yaml#/components/responses/Unauthorized'}
+        '403': {$ref: '../openapi.yaml#/components/responses/Forbidden'}
+        '409': {$ref: '../openapi.yaml#/components/responses/Conflict'}
+
+  /api/v1/import-templates/{templateId}:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/ImportTemplateId'
+    get:
+      tags: [Import Templates]
+      operationId: getImportTemplate
+      security:
+        - OAuth2: [file:read]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_template.read]
+      summary: Get a versioned import template
+      responses:
+        '200':
+          description: Import template detail.
+          content:
+            application/json:
+              schema: {$ref: '../openapi.yaml#/components/schemas/ImportTemplateDetail'}
+        '401': {$ref: '../openapi.yaml#/components/responses/Unauthorized'}
+        '403': {$ref: '../openapi.yaml#/components/responses/Forbidden'}
+        '404': {$ref: '../openapi.yaml#/components/responses/NotFound'}
+
+  /api/v1/import-templates/{templateId}/retire:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/ImportTemplateId'
+    post:
+      tags: [Import Templates]
+      operationId: retireImportTemplate
+      security:
+        - OAuth2: [file:write]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [file_template.write]
+      summary: Retire an import template version
+      responses:
+        '204': {description: Import template retired.}
+        '401': {$ref: '../openapi.yaml#/components/responses/Unauthorized'}
+        '403': {$ref: '../openapi.yaml#/components/responses/Forbidden'}
+        '404': {$ref: '../openapi.yaml#/components/responses/NotFound'}

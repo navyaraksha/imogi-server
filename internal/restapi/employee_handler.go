@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,7 +89,7 @@ func (h *Handler) ListEmployees(w http.ResponseWriter, r *http.Request, params g
 		data = append(data, employeeSummaryResponse{
 			ID:             employee.ID.UUID(),
 			CompanyID:      employee.CompanyID.UUID(),
-			EmployeeNumber: employee.EmployeeNumber,
+			EmployeeNumber: employeeNumberResponse(employee.EmployeeNumber),
 			FullName:       employee.FullName,
 			CreatedAt:      employee.CreatedAt,
 			UpdatedAt:      employee.UpdatedAt,
@@ -128,7 +129,7 @@ func (h *Handler) CreateEmployee(w http.ResponseWriter, r *http.Request, _ gener
 	}
 	input := appemployee.CreateEmployeeInput{
 		CompanyID:      companyID,
-		EmployeeNumber: body.EmployeeNumber,
+		EmployeeNumber: optionalStringValue(body.EmployeeNumber),
 		NIK:            nik,
 		FullName:       body.FullName,
 		BirthPlace:     body.BirthPlace,
@@ -305,6 +306,34 @@ func (h *Handler) GetEmployeeIdentity(w http.ResponseWriter, r *http.Request, em
 	writeJSON(w, http.StatusOK, generated.EmployeeIdentityDetail{EmployeeId: item.ID.UUID(), Nik: item.NIK.String()})
 }
 
+func (h *Handler) ListEmployeeNumberHistory(w http.ResponseWriter, r *http.Request, employeeID openapi_types.UUID, _ generated.ListEmployeeNumberHistoryParams) {
+	id, err := parseEmployeeID(employeeID)
+	if err != nil {
+		h.writeError(w, err)
+		return
+	}
+	history, err := h.service.ListEmployeeNumberHistory(r.Context(), id)
+	if err != nil {
+		h.writeError(w, err)
+		return
+	}
+	data := make([]employeeNumberHistoryResponse, 0, len(history))
+	for _, item := range history {
+		var employmentID *uuid.UUID
+		if item.EmploymentID != nil {
+			value := item.EmploymentID.UUID()
+			employmentID = &value
+		}
+		data = append(data, employeeNumberHistoryResponse{
+			ID: item.ID.UUID(), EmployeeID: item.EmployeeID.UUID(), EmploymentID: employmentID,
+			EmployeeNumber: item.EmployeeNumber, NumberType: string(item.NumberType),
+			EffectiveFrom: openDate(item.EffectiveFrom), EffectiveTo: datePtrFromTime(item.EffectiveTo),
+			Source: string(item.Source), CreatedAt: item.CreatedAt,
+		})
+	}
+	writeJSON(w, http.StatusOK, employeeNumberHistoryListResponse{Data: data})
+}
+
 func (h *Handler) ListEmployeeTaxProfiles(w http.ResponseWriter, r *http.Request, employeeID openapi_types.UUID, _ generated.ListEmployeeTaxProfilesParams) {
 	id, err := parseEmployeeID(employeeID)
 	if err != nil {
@@ -451,7 +480,7 @@ func (h *Handler) GetTaxProfile(w http.ResponseWriter, r *http.Request, taxProfi
 type employeeSummaryResponse struct {
 	ID             uuid.UUID `json:"id"`
 	CompanyID      uuid.UUID `json:"companyId"`
-	EmployeeNumber string    `json:"employeeNumber"`
+	EmployeeNumber *string   `json:"employeeNumber"`
 	FullName       string    `json:"fullName"`
 	CreatedAt      time.Time `json:"createdAt"`
 	UpdatedAt      time.Time `json:"updatedAt"`
@@ -481,7 +510,7 @@ type taxProfileListResponse struct {
 type employeeResponseDTO struct {
 	ID             uuid.UUID           `json:"id"`
 	CompanyID      uuid.UUID           `json:"companyId"`
-	EmployeeNumber string              `json:"employeeNumber"`
+	EmployeeNumber *string             `json:"employeeNumber"`
 	FullName       string              `json:"fullName"`
 	BirthPlace     *string             `json:"birthPlace"`
 	BirthDate      *openapi_types.Date `json:"birthDate"`
@@ -491,6 +520,22 @@ type employeeResponseDTO struct {
 	Address        *string             `json:"address"`
 	CreatedAt      time.Time           `json:"createdAt"`
 	UpdatedAt      time.Time           `json:"updatedAt"`
+}
+
+type employeeNumberHistoryResponse struct {
+	ID             uuid.UUID           `json:"id"`
+	EmployeeID     uuid.UUID           `json:"employeeId"`
+	EmploymentID   *uuid.UUID          `json:"employmentId,omitempty"`
+	EmployeeNumber string              `json:"employeeNumber"`
+	NumberType     string              `json:"numberType"`
+	EffectiveFrom  openapi_types.Date  `json:"effectiveFrom"`
+	EffectiveTo    *openapi_types.Date `json:"effectiveTo,omitempty"`
+	Source         string              `json:"source"`
+	CreatedAt      time.Time           `json:"createdAt"`
+}
+
+type employeeNumberHistoryListResponse struct {
+	Data []employeeNumberHistoryResponse `json:"data"`
 }
 
 type employmentResponse struct {
@@ -538,7 +583,7 @@ func employeeResponse(employee domain.Employee) employeeResponseDTO {
 	return employeeResponseDTO{
 		ID:             employee.ID.UUID(),
 		CompanyID:      employee.CompanyID.UUID(),
-		EmployeeNumber: employee.EmployeeNumber,
+		EmployeeNumber: employeeNumberResponse(employee.EmployeeNumber),
 		FullName:       employee.FullName,
 		BirthPlace:     employee.BirthPlace,
 		BirthDate:      datePtrFromTime(employee.BirthDate),
@@ -549,6 +594,14 @@ func employeeResponse(employee domain.Employee) employeeResponseDTO {
 		CreatedAt:      employee.CreatedAt,
 		UpdatedAt:      employee.UpdatedAt,
 	}
+}
+
+func employeeNumberResponse(value string) *string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	return &value
 }
 
 func employmentResponseFromDomain(employment domain.Employment, now time.Time) employmentResponse {

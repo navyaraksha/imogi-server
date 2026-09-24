@@ -101,6 +101,24 @@ func (s *Service) GetEmployeeIdentity(ctx context.Context, id domain.EmployeeID)
 	return entity, nil
 }
 
+func (s *Service) ListEmployeeNumberHistory(ctx context.Context, id domain.EmployeeID) ([]domain.EmployeeNumberHistory, error) {
+	if err := s.authorizer.Require(ctx, security.CapabilityEmployeeReadBasic); err != nil {
+		return nil, err
+	}
+	employee, err := s.repository.GetEmployee(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.requireEmployeeTenant(ctx, employee); err != nil {
+		return nil, err
+	}
+	store, ok := s.repository.(EmployeeNumberHistoryRepository)
+	if !ok {
+		return nil, errors.New("employee number history repository is not configured")
+	}
+	return store.ListEmployeeNumberHistory(ctx, id)
+}
+
 func (s *Service) ListEmployees(ctx context.Context, filter EmployeeListFilter) ([]domain.EmployeeSummary, string, error) {
 	if err := s.authorizer.Require(ctx, security.CapabilityEmployeeReadBasic); err != nil {
 		return nil, "", err

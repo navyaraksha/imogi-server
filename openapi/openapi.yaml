@@ -302,6 +302,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/v1/employees/{employeeId}/employee-number-history:
+    $ref: './paths/employee.yaml#/paths/~1api~1v1~1employees~1{employeeId}~1employee-number-history'
   /api/v1/employees/{employeeId}/employments:
     parameters:
       - $ref: '#/components/parameters/TenantSelector'
@@ -701,10 +703,20 @@ paths:
     $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1cancel'
   /api/v1/import-batches/{batchId}/artifacts:
     $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1artifacts'
+  /api/v1/import-batches/{batchId}/sheets:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1sheets'
+  /api/v1/import-batches/{batchId}/issues:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1issues'
+  /api/v1/import-batches/{batchId}/rows/{rowId}/resolve:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1rows~1{rowId}~1resolve'
   /api/v1/import-batches/{batchId}/artifacts/{artifactId}/download-url:
     $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-batches~1{batchId}~1artifacts~1{artifactId}~1download-url'
   /api/v1/import-templates:
     $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-templates'
+  /api/v1/import-templates/{templateId}:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-templates~1{templateId}'
+  /api/v1/import-templates/{templateId}/retire:
+    $ref: './paths/file_batches.yaml#/paths/~1api~1v1~1import-templates~1{templateId}~1retire'
 components:
   parameters:
     TenantSelector:
@@ -725,6 +737,8 @@ components:
       $ref: './components/parameters.yaml#/parameters/PositionId'
     GroupId:
       $ref: './components/parameters.yaml#/parameters/GroupId'
+    ImportTemplateId:
+      $ref: './components/parameters.yaml#/parameters/ImportTemplateId'
     EmployeeId:
       $ref: './components/parameters.yaml#/parameters/EmployeeId'
     EmploymentId:
@@ -774,6 +788,8 @@ components:
       $ref: './components/schemas.yaml#/schemas/AuthMeResponse'
     Id:
       $ref: './components/schemas.yaml#/schemas/Id'
+    NullableId:
+      $ref: './components/schemas.yaml#/schemas/NullableId'
     TenantId:
       $ref: './components/schemas.yaml#/schemas/TenantId'
     TenantStatus:
@@ -818,6 +834,8 @@ components:
       $ref: './components/schemas.yaml#/schemas/PayrollComponentType'
     CompanyId:
       $ref: './components/schemas.yaml#/schemas/CompanyId'
+    NullableCompanyId:
+      $ref: './components/schemas.yaml#/schemas/NullableCompanyId'
     OrganizationUnitId:
       $ref: './components/schemas.yaml#/schemas/OrganizationUnitId'
     NullableOrganizationUnitId:
@@ -908,6 +926,10 @@ components:
       $ref: './components/schemas.yaml#/schemas/EmployeeDetail'
     EmployeeIdentityDetail:
       $ref: './components/schemas.yaml#/schemas/EmployeeIdentityDetail'
+    EmployeeNumberHistoryDetail:
+      $ref: './components/schemas.yaml#/schemas/EmployeeNumberHistoryDetail'
+    EmployeeNumberHistoryListResponse:
+      $ref: './components/schemas.yaml#/schemas/EmployeeNumberHistoryListResponse'
     CreateEmployeeRequest:
       $ref: './components/schemas.yaml#/schemas/CreateEmployeeRequest'
     UpdateEmployeeRequest:
@@ -958,8 +980,20 @@ components:
       $ref: './components/schemas.yaml#/schemas/ImportOperation'
     ImportBatchStatus:
       $ref: './components/schemas.yaml#/schemas/ImportBatchStatus'
+    PayrollImportContext:
+      $ref: './components/schemas.yaml#/schemas/PayrollImportContext'
     ImportBatchDetail:
       $ref: './components/schemas.yaml#/schemas/ImportBatchDetail'
+    ImportBatchSheet:
+      $ref: './components/schemas.yaml#/schemas/ImportBatchSheet'
+    ImportBatchSheetListResponse:
+      $ref: './components/schemas.yaml#/schemas/ImportBatchSheetListResponse'
+    ImportBatchValidationIssue:
+      $ref: './components/schemas.yaml#/schemas/ImportBatchValidationIssue'
+    ImportBatchValidationIssueListResponse:
+      $ref: './components/schemas.yaml#/schemas/ImportBatchValidationIssueListResponse'
+    ResolveImportRowRequest:
+      $ref: './components/schemas.yaml#/schemas/ResolveImportRowRequest'
     CreateImportBatchRequest:
       $ref: './components/schemas.yaml#/schemas/CreateImportBatchRequest'
     ImportBatchUploadResponse:
@@ -976,6 +1010,10 @@ components:
       $ref: './components/schemas.yaml#/schemas/ArtifactDownloadURLResponse'
     ImportTemplateDetail:
       $ref: './components/schemas.yaml#/schemas/ImportTemplateDetail'
+    ImportTemplateConfiguration:
+      $ref: './components/schemas.yaml#/schemas/ImportTemplateConfiguration'
+    CreateImportTemplateRequest:
+      $ref: './components/schemas.yaml#/schemas/CreateImportTemplateRequest'
     ImportTemplateListResponse:
       $ref: './components/schemas.yaml#/schemas/ImportTemplateListResponse'
   securitySchemes:

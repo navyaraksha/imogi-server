@@ -1,0 +1,32 @@
+{
+  "sheetName": "master_employees",
+  "headerRow": 1,
+  "dataStartRow": 2,
+  "columns": {
+    "nik": "KTP",
+    "full_name": "NAMA",
+    "ptkp_code": "PTKP",
+    "gender": "GENDER",
+    "address": "ALAMAT",
+    "birth_date": "TGL LAHIR",
+    "phone": "TEL",
+    "company_name": "PERUSAHAAN",
+    "employee_number": "NO KARYAWAN",
+    "location": "LOKASI",
+    "division": "DIVISI",
+    "department": "DEPARTEMEN",
+    "group": "GRUP",
+    "employment_type": "JENIS",
+    "join_date": "TGL MASUK",
+    "first_payroll": "FIRST PAYROLL",
+    "last_payroll": "LAST PAYROLL",
+    "bpa1": "BPA1",
+    "end_date": "TGL RESIGN",
+    "status": "STATUS",
+    "bank": "BANK",
+    "bank_account": "REKENING",
+    "bank_account_name": "NAMA REKENING"
+  },
+  "defaultTaxMethod": "monthly",
+  "defaultEmploymentType": "permanent"
+}

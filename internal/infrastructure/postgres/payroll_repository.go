@@ -81,6 +81,17 @@ func (r *PayrollRepository) GetPayrollPeriod(ctx context.Context, id domain.Payr
 	return mapPayrollPeriod(row), nil
 }
 
+func (r *PayrollRepository) GetPayrollPeriodByScope(ctx context.Context, tenantID organization.TenantID, companyID organization.CompanyID, year, month int) (domain.PayrollPeriod, error) {
+	row, err := r.queries.GetPayrollPeriodByTenantCompanyMonth(ctx, sqlc.GetPayrollPeriodByTenantCompanyMonthParams{TenantID: tenantID.UUID(), CompanyID: companyID.UUID(), Year: int32(year), Month: int32(month)})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.PayrollPeriod{}, domain.ErrPayrollPeriodNotFound
+	}
+	if err != nil {
+		return domain.PayrollPeriod{}, mapPayrollDatabaseError(err)
+	}
+	return mapPayrollPeriod(row), nil
+}
+
 func (r *PayrollRepository) ListPayrollPeriods(ctx context.Context, filter apppayroll.PeriodFilter) ([]domain.PayrollPeriod, error) {
 	var companyID *uuid.UUID
 	if filter.CompanyID.UUID() != uuid.Nil {
@@ -209,11 +220,33 @@ func (t *payrollTransaction) CreatePayrollResult(ctx context.Context, entity dom
 		GrossIncome:     entity.GrossIncome.Int64(),
 		TaxableIncome:   entity.TaxableIncome.Int64(),
 		TakeHomePay:     entity.TakeHomePay.Int64(),
+		PayrollRunID:    payrollRunID(entity.PayrollRunID), SourceEmployeeNumber: entity.SourceEmployeeNumber,
+		SourceSheetName: entity.SourceSheetName, SourceRowNo: int32Ptr(entity.SourceRowNo),
 	})
 	if err != nil {
 		return domain.PayrollResult{}, mapPayrollDatabaseError(err)
 	}
 	return mapPayrollResult(row), nil
+}
+
+func (t *payrollTransaction) CreatePayrollRun(ctx context.Context, entity domain.PayrollRun) (domain.PayrollRun, error) {
+	if err := entity.Validate(); err != nil {
+		return domain.PayrollRun{}, err
+	}
+	row, err := t.queries.CreatePayrollRun(ctx, sqlc.CreatePayrollRunParams{
+		ID: entity.ID.UUID(), TenantID: entity.TenantID.UUID(), CompanyID: entity.CompanyID.UUID(), PayrollPeriodID: entity.PayrollPeriodID.UUID(),
+		RunType: string(entity.RunType), RunDate: toPGDate(&entity.RunDate), CoverageFrom: toPGDate(&entity.CoverageFrom), CoverageTo: toPGDate(&entity.CoverageTo),
+		PayDate: toPGDate(entity.PayDate), SequenceNo: int32(entity.SequenceNo), SourceBatchID: entity.SourceBatchID, CorrectionOfRunID: payrollRunID(entity.CorrectionOfRunID),
+	})
+	if err != nil {
+		return domain.PayrollRun{}, mapPayrollDatabaseError(err)
+	}
+	return mapPayrollRun(row), nil
+}
+
+func (t *payrollTransaction) NextPayrollRunSequence(ctx context.Context, periodID domain.PayrollPeriodID, runType domain.RunType, tenantID organization.TenantID, companyID organization.CompanyID) (int, error) {
+	value, err := t.queries.NextPayrollRunSequence(ctx, sqlc.NextPayrollRunSequenceParams{TenantID: tenantID.UUID(), CompanyID: companyID.UUID(), PayrollPeriodID: periodID.UUID(), RunType: string(runType)})
+	return int(value), mapPayrollDatabaseError(err)
 }
 
 func (t *payrollTransaction) CreatePayrollResultItem(ctx context.Context, entity domain.PayrollResultItem) (domain.PayrollResultItem, error) {
@@ -276,6 +309,16 @@ func mapPayrollPeriod(row sqlc.PayrollPayrollPeriod) domain.PayrollPeriod {
 }
 
 func mapPayrollResult(row sqlc.PayrollPayrollResult) domain.PayrollResult {
+	var runID *domain.PayrollRunID
+	if row.PayrollRunID != nil {
+		value := domain.PayrollRunID(*row.PayrollRunID)
+		runID = &value
+	}
+	var sourceRow *int
+	if row.SourceRowNo != nil {
+		value := int(*row.SourceRowNo)
+		sourceRow = &value
+	}
 	return domain.PayrollResult{
 		ID:              domain.PayrollResultID(row.ID),
 		TenantID:        organization.TenantID(row.TenantID),
@@ -289,6 +332,7 @@ func mapPayrollResult(row sqlc.PayrollPayrollResult) domain.PayrollResult {
 		FinalizedAt:     nullableTimestamp(row.FinalizedAt),
 		CreatedAt:       timestamp(row.CreatedAt),
 		UpdatedAt:       timestamp(row.UpdatedAt),
+		PayrollRunID:    runID, SourceEmployeeNumber: row.SourceEmployeeNumber, SourceSheetName: row.SourceSheetName, SourceRowNo: sourceRow,
 	}
 }
 
@@ -307,6 +351,23 @@ func mapPayrollHistoryResult(row sqlc.ListPayrollHistoryRow) domain.PayrollResul
 		CreatedAt:       timestamp(row.CreatedAt),
 		UpdatedAt:       timestamp(row.UpdatedAt),
 	}
+}
+
+func mapPayrollRun(row sqlc.PayrollPayrollRun) domain.PayrollRun {
+	var runID *domain.PayrollRunID
+	if row.CorrectionOfRunID != nil {
+		value := domain.PayrollRunID(*row.CorrectionOfRunID)
+		runID = &value
+	}
+	return domain.PayrollRun{ID: domain.PayrollRunID(row.ID), TenantID: organization.TenantID(row.TenantID), CompanyID: organization.CompanyID(row.CompanyID), PayrollPeriodID: domain.PayrollPeriodID(row.PayrollPeriodID), RunType: domain.RunType(row.RunType), RunDate: dateValue(row.RunDate), CoverageFrom: dateValue(row.CoverageFrom), CoverageTo: dateValue(row.CoverageTo), PayDate: fromPGDatePtr(row.PayDate), SequenceNo: int(row.SequenceNo), SourceBatchID: row.SourceBatchID, CorrectionOfRunID: runID, Status: row.Status, FinalizedAt: nullableTimestamp(row.FinalizedAt), CreatedAt: timestamp(row.CreatedAt), UpdatedAt: timestamp(row.UpdatedAt)}
+}
+
+func payrollRunID(value *domain.PayrollRunID) *uuid.UUID {
+	if value == nil {
+		return nil
+	}
+	id := value.UUID()
+	return &id
 }
 
 func mapPayrollItem(row sqlc.PayrollPayrollResultItem) domain.PayrollResultItem {

@@ -81,3 +81,25 @@ func TestTaxProfileStatusIsDerivedFromEffectiveDates(t *testing.T) {
 		t.Fatalf("historical status = %q", got)
 	}
 }
+
+func TestEmployeeNumberHistorySupportsTemporaryToPermanentCorrection(t *testing.T) {
+	tenantID := organization.TenantID(uuid.MustParse("01933b7e-5f6a-7b8c-9d0e-111111111111"))
+	companyID := organization.CompanyID(uuid.MustParse("01933b7e-5f6a-7b8c-9d0e-222222222222"))
+	employeeID := EmployeeID(uuid.MustParse("01933b7e-5f6a-7b8c-9d0e-333333333333"))
+	historyID := EmployeeNumberHistoryID(uuid.MustParse("01933b7e-5f6a-7b8c-9d0e-444444444444"))
+	start := time.Date(2025, 1, 10, 0, 0, 0, 0, time.UTC)
+	history, err := NewEmployeeNumberHistory(historyID, tenantID, companyID, employeeID, nil, "NF001", EmployeeNumberTemporary, start, EmployeeNumberSourceImport, start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !history.IsEffectiveOn(start.AddDate(0, 1, 0)) {
+		t.Fatal("temporary number should be effective before correction")
+	}
+	end := time.Date(2025, 3, 31, 0, 0, 0, 0, time.UTC)
+	if err := history.Close(end); err != nil {
+		t.Fatal(err)
+	}
+	if history.IsEffectiveOn(end.AddDate(0, 0, 1)) {
+		t.Fatal("closed number should not remain effective")
+	}
+}

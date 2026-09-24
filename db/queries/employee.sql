@@ -18,7 +18,7 @@ VALUES (
     sqlc.arg('id'),
     sqlc.arg('tenant_id'),
     sqlc.arg('company_id'),
-    sqlc.arg('employee_number'),
+    NULLIF(sqlc.arg('employee_number')::text, ''),
     sqlc.arg('nik_ciphertext'),
     sqlc.arg('nik_lookup_hash'),
     sqlc.arg('full_name'),
@@ -29,15 +29,21 @@ VALUES (
     sqlc.arg('phone'),
     sqlc.arg('address')
 )
-RETURNING *;
+RETURNING
+    id, COALESCE(employee_number, '') AS employee_number, nik_ciphertext,
+    nik_lookup_hash, full_name, birth_place, birth_date, gender, email, phone,
+    address, created_at, updated_at, tenant_id, company_id;
 
 -- name: GetEmployee :one
-SELECT *
+SELECT
+    id, COALESCE(employee_number, '') AS employee_number, nik_ciphertext,
+    nik_lookup_hash, full_name, birth_place, birth_date, gender, email, phone,
+    address, created_at, updated_at, tenant_id, company_id
 FROM employee.employees
 WHERE id = sqlc.arg('id');
 
 -- name: ListEmployeeSummaries :many
-SELECT id, tenant_id, company_id, employee_number, full_name, created_at, updated_at
+SELECT id, tenant_id, company_id, COALESCE(employee_number, '') AS employee_number, full_name, created_at, updated_at
 FROM employee.employees
 WHERE (
     sqlc.narg('search')::text IS NULL
@@ -103,7 +109,10 @@ SET
     phone = sqlc.arg('phone'),
     address = sqlc.arg('address')
 WHERE id = sqlc.arg('id')
-RETURNING *;
+RETURNING
+    id, COALESCE(employee_number, '') AS employee_number, nik_ciphertext,
+    nik_lookup_hash, full_name, birth_place, birth_date, gender, email, phone,
+    address, created_at, updated_at, tenant_id, company_id;
 
 -- name: CreateEmployment :one
 INSERT INTO employee.employments (
@@ -122,6 +131,13 @@ VALUES (
     sqlc.arg('employment_type'),
     sqlc.arg('join_date')
 )
+RETURNING *;
+
+-- name: UpdateEmployeeNumberProjection :one
+UPDATE employee.employees
+SET employee_number = sqlc.narg('employee_number'),
+    employee_number_status = sqlc.arg('employee_number_status')
+WHERE id = sqlc.arg('id')
 RETURNING *;
 
 -- name: GetEmployment :one

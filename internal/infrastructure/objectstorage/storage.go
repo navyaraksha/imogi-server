@@ -172,9 +172,13 @@ func NewS3(config Config) (*S3, error) {
 	if config.Endpoint == "" || config.Bucket == "" || config.AccessKey == "" || config.SecretKey == "" {
 		return nil, errors.New("s3 endpoint, bucket, access key, and secret key are required")
 	}
-	client, err := minio.New(config.Endpoint, &minio.Options{
+	endpoint, secure, err := normalizeS3Endpoint(config.Endpoint, config.Secure)
+	if err != nil {
+		return nil, err
+	}
+	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.AccessKey, config.SecretKey, ""),
-		Secure: config.Secure,
+		Secure: secure,
 		Region: config.Region,
 		BucketLookup: func() minio.BucketLookupType {
 			if config.UsePathStyle {
@@ -188,6 +192,30 @@ func NewS3(config Config) (*S3, error) {
 	}
 	client.SetAppInfo("imogi", "v0")
 	return &S3{client: client, bucket: config.Bucket}, nil
+}
+
+func normalizeS3Endpoint(value string, secure bool) (string, bool, error) {
+	value = strings.TrimSpace(value)
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return "", false, fmt.Errorf("parse s3 endpoint: %w", err)
+	}
+	if parsed.Scheme == "" {
+		return strings.TrimSuffix(value, "/"), secure, nil
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", false, fmt.Errorf("unsupported s3 endpoint scheme %q", parsed.Scheme)
+	}
+	if parsed.Host == "" {
+		return "", false, errors.New("s3 endpoint host is required")
+	}
+	if parsed.Path != "" && parsed.Path != "/" {
+		return "", false, errors.New("s3 endpoint must not contain a path; configure the bucket separately")
+	}
+	if parsed.RawQuery != "" || parsed.Fragment != "" {
+		return "", false, errors.New("s3 endpoint must not contain query or fragment")
+	}
+	return parsed.Host, parsed.Scheme == "https", nil
 }
 
 func (storage *S3) PrepareUpload(ctx context.Context, key, _ string, expiry time.Duration) (UploadSession, error) {

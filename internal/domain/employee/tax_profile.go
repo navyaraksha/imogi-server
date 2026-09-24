@@ -75,6 +75,8 @@ func NewTaxProfile(
 }
 
 func (p TaxProfile) Status(asOf time.Time) TaxProfileStatus {
+	// Tax profile status is evaluated at the requested business date to support
+	// both current payroll and historical payroll reconstruction.
 	asOf = dateOnly(asOf)
 	if asOf.Before(p.EffectiveFrom) {
 		return TaxProfileScheduled

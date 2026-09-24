@@ -5,6 +5,9 @@ import "errors"
 var (
 	ErrBatchNotFound           = errors.New("import batch not found")
 	ErrFileObjectNotFound      = errors.New("file object not found")
+	ErrTemplateNotFound        = errors.New("import template not found")
+	ErrTemplateNotApplicable   = errors.New("import template is not applicable")
+	ErrInvalidTemplate         = errors.New("invalid import template")
 	ErrBatchInvalidState       = errors.New("import batch is in an invalid state")
 	ErrBatchValidationRequired = errors.New("import batch requires successful validation")
 	ErrBatchAlreadyCommitted   = errors.New("import batch is already committed")

@@ -1,0 +1,27 @@
+paths:
+  /api/v1/employees/{employeeId}/employee-number-history:
+    parameters:
+      - $ref: '../openapi.yaml#/components/parameters/TenantSelector'
+      - $ref: '../openapi.yaml#/components/parameters/EmployeeId'
+    get:
+      tags: [Employees]
+      operationId: listEmployeeNumberHistory
+      security:
+        - OAuth2: [employee:read-basic]
+        - ImogiSession: []
+      x-required-capabilities:
+        all: [employee.read.basic]
+      summary: List effective-dated employee number history
+      responses:
+        '200':
+          description: Employee number history.
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/EmployeeNumberHistoryListResponse'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'

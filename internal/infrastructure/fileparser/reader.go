@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"strings"
 
 	"github.com/extrame/xls"
 	"github.com/navyaraksha/imogi/internal/platform/tabular"
@@ -27,22 +26,23 @@ func New(maxRows int) (*Parser, error) {
 }
 
 func (parser *Parser) Open(input io.Reader, extension string) (tabular.RowReader, error) {
-	data, err := io.ReadAll(input)
+	// All supported formats are normalized to the same row-reader contract so
+	// import validation and commit logic remain independent of parser libraries.
+	workbook, err := parser.OpenWorkbook(input, extension)
 	if err != nil {
 		return nil, err
 	}
-	switch strings.TrimPrefix(strings.ToLower(strings.TrimSpace(extension)), ".") {
-	case "csv":
-		return &csvRows{reader: csv.NewReader(bytes.NewReader(data))}, nil
-	case "json":
-		return newJSONRows(data)
-	case "xlsx", "xlsm":
-		return newExcelRows(data)
-	case "xls":
-		return newXLSRows(data, parser.MaxRows)
-	default:
-		return nil, fmt.Errorf("unsupported file extension %q", extension)
+	sheets := workbook.Sheets()
+	if len(sheets) == 0 {
+		_ = workbook.Close()
+		return nil, errors.New("workbook has no sheets")
 	}
+	rows, err := workbook.OpenSheet(sheets[0].Name)
+	if err != nil {
+		_ = workbook.Close()
+		return nil, err
+	}
+	return &workbookRows{RowReader: rows, closeWorkbook: workbook.Close}, nil
 }
 
 type csvRows struct {
@@ -146,12 +146,16 @@ func (rows *excelRows) Close() error {
 	if err := rows.rows.Close(); err != nil {
 		return err
 	}
+	if rows.close == nil {
+		return nil
+	}
 	return rows.close()
 }
 
 type xlsRows struct {
 	rows  [][]string
 	index int
+	err   error
 }
 
 func newXLSRows(data []byte, maxRows int) (*xlsRows, error) {
@@ -168,7 +172,7 @@ func (rows *xlsRows) Columns() ([]string, error) {
 	}
 	return rows.rows[rows.index-1], nil
 }
-func (rows *xlsRows) Err() error   { return nil }
+func (rows *xlsRows) Err() error   { return rows.err }
 func (rows *xlsRows) Close() error { return nil }
 
 func contains(values []string, expected string) bool {

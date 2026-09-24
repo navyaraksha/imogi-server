@@ -63,10 +63,11 @@ func NewEmployee(
 	personal PersonalData,
 	now time.Time,
 ) (Employee, error) {
-	employeeNumber, err := validateText(employeeNumber, "employee number", 100, ErrInvalidEmployee)
-	if err != nil {
-		return Employee{}, err
+	employeeNumber = strings.TrimSpace(employeeNumber)
+	if len(employeeNumber) > 100 {
+		return Employee{}, fmt.Errorf("%w: employee number is too long", ErrInvalidEmployee)
 	}
+	var err error
 	fullName, err = validateText(fullName, "full name", 200, ErrInvalidEmployee)
 	if err != nil {
 		return Employee{}, err
